@@ -684,6 +684,7 @@ const handleDragStart = (e, index) => {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 8px;
+          min-height: 0;
         }
 
         .briefcase-slot {
@@ -699,6 +700,8 @@ const handleDragStart = (e, index) => {
           padding: 6px;
           cursor: grab;
           transition: all 0.16s ease-out;
+          aspect-ratio: 1 / 1; 
+          min-height: 0;
         }
 
         .briefcase-slot:hover {
@@ -912,6 +915,61 @@ const handleDragStart = (e, index) => {
             0 14px 30px rgba(0,0,0,0.9);
         }
 
+        .briefcase-hotbar-slot-wrapper {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            padding: 4px;
+            border-radius: 10px;
+            background: radial-gradient(circle at top, rgba(248,250,252,0.12), transparent 60%),
+                        linear-gradient(145deg, #020617, #020617);
+            border: 1px solid var(--accent-2, #22c55e);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.6), 0 8px 14px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Setze Hotbar Slot auf den Hotbar Style zurück */
+        .briefcase-hotbar-slot-wrapper .briefcase-slot {
+            border: none;
+            background: none;
+            padding: 0; 
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Hotbar Icon wird größer */
+        .briefcase-hotbar-slot-wrapper .briefcase-item-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 24px;
+            box-shadow: none;
+            border-radius: 12px;
+            background: rgba(15,23,42,0.9);
+        }
+
+        /* Korrektur des Hotbar-Item-QTY-Stils */
+        .briefcase-hotbar-slot-wrapper .briefcase-item-qty {
+             top: 4px; 
+             right: 6px; 
+             min-width: 22px; 
+             height: 18px; 
+             font-size: 11px;
+             padding: 0 6px;
+        }
+        
+        /* Visuelles Feedback für Drop-Ziel */
+        .drag-hover {
+            box-shadow: 0 0 10px 4px var(--animation-pulse-color, #f97316), inset 0 0 0 2px var(--animation-pulse-color, #f97316) !important;
+            transform: scale(1.01);
+        }
+        .dragging {
+            opacity: 0.5;
+            border: 2px dashed var(--animation-pulse-color, #f97316) !important;
+            box-shadow: none !important;
+            transform: scale(1) !important;
+        }
+
       `}</style>
 
       <div className="briefcase-shadow" />
@@ -1016,68 +1074,21 @@ const handleDragStart = (e, index) => {
 
                   <div className="briefcase-inventory-scroll">
                     <div className="briefcase-inventory-grid">
-                      {inventoryItems.map((item, index) => {
-                        const isOccupied = isItemDefined(item);
-                        return (
-                        <div
-                                  key={index} // Verwende den Index als eindeutigen Schlüssel für den Slot
-                                  data-index={index}
-                                  className={`briefcase-slot ${!isOccupied ? 'empty' : ''} ${
-                                    selectedItem === item?.id ? 'selected' : ''
-                                  } ${useFlash ? 'briefcase-slot-flash' : ''} ${isOccupied && useGlow ? 'slot-glow' : ''}`}
-                                  onClick={() =>
-                                    setSelectedItem(
-                                      selectedItem === item?.id ? null : item?.id
-                                    )
-                                  }
-                                  onMouseEnter={() => setHoveredItem(item?.id)}
-                                  onMouseLeave={() => setHoveredItem(null)}
-                                  
-                                  // DRAG & DROP Hinzufügen
-                                  draggable={isOccupied} // Nur belegte Slots sind ziehbar
-                                  onDragStart={(e) => handleDragStart(e, index)}
-                                  onDragEnd={handleDragEnd}
-                                  onDragOver={handleDragOver}
-                                  onDrop={(e) => handleDrop(e, index)}
-                              >
-                                  {isOccupied && (
-                                      <>
-                                          <div className="briefcase-item-icon">{item.emoji}</div>
-                                          {item.quantity > 1 && (
-                                              <div className="briefcase-item-qty">{item.quantity}</div>
-                                          )}
-                                          {hoveredItem === item.id && (
-                                              <div
-                                                  className="briefcase-tooltip"
-                                                  style={{ left: '50%', bottom: '100%' }}
-                                              >
-                                                  {item.name}
-                                              </div>
-                                          )}
-                                      </>
-                                  )}
-                              </div>
-                        );
-                      })}
+                      {/* Inventar Slots (Index 0 bis 49) */}
+                      {inventoryItems.map((item, index) => renderSlot(item, index))}
                     </div>
                   </div>
 
-                  {/* Hotbar: Zeigt die ersten 5 Slots des Inventars (Index 0 bis 4) */}
+                  {/* Hotbar: Nutzt renderSlot für D&D und wickelt ihn in einen Hotbar-Wrapper-Stil */}
                   <div className="briefcase-hotbar">
                     <div className="briefcase-hotbar-header">Hotbar • Schnellzugriff</div>
                     <div className="briefcase-hotbar-row">
-                      {hotbarItems.map((item, index) => {
-                          const isOccupied = isItemDefined(item);
-                          
-                          // Hotbar-Slots spiegeln die ersten 5 Hauptslots wider (Index 0-4)
-                          return (
-                              <div key={index} className="briefcase-hotbar-slot">
-                                  {isOccupied && (
-                                      <div className="briefcase-hotbar-icon">{item.emoji}</div>
-                                  )}
-                              </div>
-                          );
-                      })}
+                      {/* Hotbar mappt die ersten 5 Items. Index ist 0 bis 4! */}
+                      {hotbarSlots.map((item, index) => (
+                        <div key={index} className="briefcase-hotbar-slot-wrapper">
+                            {renderSlot(item, index)}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
