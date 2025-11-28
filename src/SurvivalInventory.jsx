@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import BriefcaseDesign from './designs/BriefcaseDesign.jsx';
+// Später: weitere Designs importieren
 import KidsShelfDesign from './designs/KidsShelfDesign.jsx';
 import TacticalBackpackDesign from './designs/TacticalBackpackDesign.jsx';
 import RetroDrawerDesign from './designs/RetroDrawerDesign.jsx';
@@ -21,6 +22,7 @@ const THEMES = {
   arcticBlue: { name: 'Arctic Blue', key: 'arcticBlue' },
 };
 
+// NEU: Animationen definieren
 const ANIMATIONS = {
   none: { name: 'Keine', key: 'none' },
   subtleGlow: { name: 'Subtiles Glühen', key: 'subtleGlow' },
@@ -29,62 +31,41 @@ const ANIMATIONS = {
 };
 
 const INITIAL_ITEMS = [
-    { id: 1, name: 'Sandwich', emoji: '🥪', quantity: 2 },
-    { id: 2, name: 'Dokumente', emoji: '📋', quantity: 1 },
-    { id: 3, name: 'Getränk', emoji: '🧃', quantity: 3 },
-    { id: 4, name: 'Verbandskasten', emoji: '🏥', quantity: 1 },
-    { id: 5, name: 'Lieferbox', emoji: '📦', quantity: 1 },
-    { id: 6, name: 'Autoschlüssel', emoji: '🔑', quantity: 1 },
-    { id: 7, name: 'Werkzeug', emoji: '🔧', quantity: 2 },
-    { id: 8, name: 'Plastiktüte', emoji: '🗂️', quantity: 1 },
-    { id: 9, name: 'Axt', emoji: '🪓', quantity: 1 },
-    { id: 10, name: 'Messer', emoji: '🔪', quantity: 1 },
-    { id: 11, name: 'Smartphone', emoji: '📱', quantity: 1 },
-    { id: 12, name: 'Burger', emoji: '🍔', quantity: 4 },
-    { id: 13, name: 'Notizbuch', emoji: '📓', quantity: 1 },
-    { id: 14, name: 'Munition', emoji: '🪙', quantity: 50 },
-    { id: 15, name: 'Pizza', emoji: '🍕', quantity: 2 },
-    { id: 16, name: 'Bargeld', emoji: '💵', quantity: 1 },
-    { id: 17, name: 'Dose', emoji: '🥫', quantity: 3 },
-    { id: 18, name: 'Diamant', emoji: '💎', quantity: 1 },
-    { id: 19, name: 'Orange', emoji: '🍊', quantity: 5 },
-    { id: 20, name: 'Spiegel', emoji: '🪞', quantity: 1 },
-    { id: 21, name: 'Mandarine', emoji: '🍊', quantity: 3 },
-    { id: 22, name: 'Cheeseburger', emoji: '🍔', quantity: 2 },
-    { id: 23, name: 'Schlüssel', emoji: '🗝️', quantity: 1 },
-    { id: 24, name: 'Medikamente', emoji: '💊', quantity: 10 },
-    { id: 25, name: 'Wasserflasche', emoji: '💧', quantity: 2 },
+  { id: 1, name: 'Sandwich', emoji: '🥪', quantity: 2 },
+  { id: 2, name: 'Dokumente', emoji: '📋', quantity: 1 },
+  { id: 3, name: 'Getränk', emoji: '🧃', quantity: 3 },
+  { id: 4, name: 'Verbandskasten', emoji: '🏥', quantity: 1 },
+  { id: 5, name: 'Lieferbox', emoji: '📦', quantity: 1 },
+  { id: 6, name: 'Autoschlüssel', emoji: '🔑', quantity: 1 },
+  { id: 7, name: 'Werkzeug', emoji: '🔧', quantity: 2 },
+  { id: 8, name: 'Plastiktüte', emoji: '🗂️', quantity: 1 },
+  { id: 9, name: 'Axt', emoji: '🪓', quantity: 1 },
+  { id: 10, name: 'Messer', emoji: '🔪', quantity: 1 },
+  { id: 11, name: 'Smartphone', emoji: '📱', quantity: 1 },
+  { id: 12, name: 'Burger', emoji: '🍔', quantity: 4 },
+  { id: 13, name: 'Notizbuch', emoji: '📓', quantity: 1 },
+  { id: 14, name: 'Munition', emoji: '🪙', quantity: 50 },
+  { id: 15, name: 'Pizza', emoji: '🍕', quantity: 2 },
+  { id: 16, name: 'Bargeld', emoji: '💵', quantity: 1 },
+  { id: 17, name: 'Dose', emoji: '🥫', quantity: 3 },
+  { id: 18, name: 'Diamant', emoji: '💎', quantity: 1 },
+  { id: 19, name: 'Orange', emoji: '🍊', quantity: 5 },
+  { id: 20, name: 'Spiegel', emoji: '🪞', quantity: 1 },
+  { id: 21, name: 'Mandarine', emoji: '🍊', quantity: 3 },
+  { id: 22, name: 'Cheeseburger', emoji: '🍔', quantity: 2 },
+  { id: 23, name: 'Schlüssel', emoji: '🗝️', quantity: 1 },
+  { id: 24, name: 'Medikamente', emoji: '💊', quantity: 10 },
+  { id: 25, name: 'Wasserflasche', emoji: '💧', quantity: 2 },
 ];
-// Fülle die restlichen 25 Slots mit null auf, um ein 50-Slot Array zu erhalten.
+// 50 Slots: Fülle die restlichen mit null auf
 const PADDED_ITEMS = [...INITIAL_ITEMS, ...Array(50 - INITIAL_ITEMS.length).fill(null)];
 
 
 export default function SurvivalInventory() {
   const [items, setItems] = useState(PADDED_ITEMS); // Inventar-Items jetzt als State
-
   const [layoutKey, setLayoutKey] = useState('briefcase');
   const [themeKey, setThemeKey] = useState('classicLeather');
-  // Neuer State für Animationen
   const [animationKey, setAnimationKey] = useState('none'); 
-
-  const keys = [
-    { name: 'Autoschlüssel', icon: '🚗🔑' },
-    { name: 'Haustür Schlüssel', icon: '🏠🔑' },
-    { name: 'Job Schlüssel', icon: '🏢🔑' },
-  ];
-
-  const licenses = [
-    { id: 'id', label: 'ID Card', desc: 'Personalausweis' },
-    { id: 'driver', label: 'Führerschein', desc: 'PKW / Motorrad' },
-    { id: 'weapon', label: 'Waffenschein', desc: 'Registrierte Waffen' },
-  ];
-
-  const stats = [
-    { name: 'Health', value: 95, max: 100, color: '#16a34a' },
-    { name: 'Armor', value: 60, max: 100, color: '#2563eb' },
-    { name: 'Hunger', value: 35, max: 100, color: '#ea580c' },
-    { name: 'Durst', value: 70, max: 100, color: '#7c3aed' },
-  ];
   
   // NEUE FUNKTION: Verschieben von Items (Drag & Drop Logik)
   const moveItem = (fromIndex, toIndex) => {
@@ -104,13 +85,31 @@ export default function SurvivalInventory() {
       });
   };
 
+  const keys = [
+    { name: 'Autoschlüssel', icon: '🚗🔑' },
+    { name: 'Haustür Schlüssel', icon: '🏠🔑' },
+    { name: 'Job Schlüssel', icon: '🏢🔑' },
+  ];
+
+  const licenses = [
+    { id: 'id', label: 'ID Card', desc: 'Personalausweis' },
+    { id: 'driver', label: 'Führerschein', desc: 'PKW / Motorrad' },
+    { id: 'weapon', label: 'Waffenschein', desc: 'Registrierte Waffen' },
+  ];
+
+  const stats = [
+    { name: 'Health', value: 95, max: 100, color: '#16a34a' },
+    { name: 'Armor', value: 60, max: 100, color: '#2563eb' },
+    { name: 'Hunger', value: 35, max: 100, color: '#ea580c' },
+    { name: 'Durst', value: 70, max: 100, color: '#7c3aed' },
+  ];
 
   const renderLayout = () => {
     const layoutProps = {
       themeKey,
-      animationKey, 
-      inventoryItems: items, // Übergabe des 50-Slot-Arrays
-      moveItem, // Übergabe der Move-Funktion
+      animationKey, // NEU: Animationen übergeben
+      inventoryItems: items, // NEU: State-Items übergeben
+      moveItem, // NEU: Move-Funktion übergeben
       keys,
       licenses,
       stats,
@@ -153,13 +152,15 @@ export default function SurvivalInventory() {
           /* Neue Variablen für Animationen */
           --animation-speed: 2.5s;
           --animation-pulse-color: var(--accent-1);
+          /* NEU: Farb-Fallback für RGB-Animationen (Sci-Fi) */
+          --animation-pulse-color-rgb: 249, 115, 22; /* Standard: f97316 */
         }
 
         .app-root {
           background: radial-gradient(circle at top, #020617 0, #020617 40%, #000 100%);
         }
 
-        /* THEMES: Überschreibt Standard-Akzente (Unverändert) */
+        /* THEMES: Überschreibt Standard-Akzente */
 
         .theme-classicLeather {
           --accent-1: #f97316;
@@ -169,6 +170,8 @@ export default function SurvivalInventory() {
           --paper-ink: #111827;
           --metal-color: #9ca3af;
           --panel-inner: #0b1120;
+          --animation-pulse-color: var(--accent-1);
+          --animation-pulse-color-rgb: 249, 115, 22; /* Orange */
         }
 
         .theme-nightOps {
@@ -179,7 +182,8 @@ export default function SurvivalInventory() {
           --paper-ink: #020617;
           --metal-color: #6b7280;
           --panel-inner: #020617;
-          --animation-pulse-color: var(--accent-1); /* Blau */
+          --animation-pulse-color: var(--accent-1); 
+          --animation-pulse-color-rgb: 14, 165, 233; /* Blau */
         }
 
         .theme-desertDust {
@@ -190,7 +194,8 @@ export default function SurvivalInventory() {
           --paper-ink: #422006;
           --metal-color: #a16207;
           --panel-inner: #1c1917;
-          --animation-pulse-color: var(--accent-2); /* Gelb/Orange */
+          --animation-pulse-color: var(--accent-2); 
+          --animation-pulse-color-rgb: 234, 179, 8; /* Gelb/Orange */
         }
 
         .theme-neonMiami {
@@ -201,7 +206,8 @@ export default function SurvivalInventory() {
           --paper-ink: #111827;
           --metal-color: #a855f7;
           --panel-inner: #020617;
-          --animation-pulse-color: var(--accent-1); /* Pink */
+          --animation-pulse-color: var(--accent-1); 
+          --animation-pulse-color-rgb: 236, 72, 153; /* Pink */
         }
 
         .theme-arcticBlue {
@@ -212,10 +218,11 @@ export default function SurvivalInventory() {
           --paper-ink: #020617;
           --metal-color: #cbd5f5;
           --panel-inner: #020617;
-          --animation-pulse-color: var(--accent-1); /* Hellblau */
+          --animation-pulse-color: var(--accent-1); 
+          --animation-pulse-color-rgb: 56, 189, 248; /* Hellblau */
         }
 
-        /* ANIMATIONS-KLASSEN (zentral definiert) (Unverändert) */
+        /* ANIMATIONS-KLASSEN (zentral definiert) */
         
         /* 1. Slot-Flash */
         @keyframes slotFlash {
@@ -240,8 +247,12 @@ export default function SurvivalInventory() {
             0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--animation-pulse-color); }
             50% { transform: scale(1.02); box-shadow: 0 0 12px 0 var(--animation-pulse-color); }
         }
-        
-        /* Dragging Visuelle Hilfe */
+
+        /* Dragging Visuelle Hilfe (Für alle Designs gültig) */
+        .drag-hover {
+            box-shadow: 0 0 10px 4px var(--animation-pulse-color, #f97316), inset 0 0 0 2px var(--animation-pulse-color, #f97316) !important;
+            transform: scale(1.01);
+        }
         .dragging {
             opacity: 0.5;
             border: 2px dashed var(--animation-pulse-color, #f97316) !important;
@@ -249,12 +260,11 @@ export default function SurvivalInventory() {
             transform: scale(1) !important;
         }
 
-
       `}</style>
 
       {/* HIER kleiner gemacht: max-w-[1100px] statt 1400px */}
       <div className="w-full max-w-[1100px]">
-        {/* Switcher-Leiste (Unverändert) */}
+        {/* Switcher-Leiste */}
         <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
           <div className="inline-flex items-center gap-2 bg-black/60 border border-slate-700/80 rounded-full px-3 py-2">
             <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400 mr-1">

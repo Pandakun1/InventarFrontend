@@ -8,7 +8,7 @@ export default function BriefcaseDesign({ themeKey, animationKey, inventoryItems
   const [draggedItemIndex, setDraggedItemIndex] = useState(null); // State für den Index des gezogenen Items
 
   // Item ist definiert, wenn es nicht null ist
-  const isItemDefined = (item) => item !== null && item.emoji !== undefined && item.emoji !== '';
+  const isItemDefined = (item) => item !== null && item?.emoji !== undefined && item?.emoji !== '';
 
   // Hotbar sind die ersten 5 Slots im Hauptinventar-Array
   const hotbarItems = inventoryItems.slice(0, 5);
@@ -23,7 +23,8 @@ const handleDragStart = (e, index) => {
       e.preventDefault();
       return;
     }
-    setDraggedItemIndex(index);
+setDraggedItemIndex(index);
+    // Speichere den Start-Index
     e.dataTransfer.setData('fromIndex', index.toString());
     e.currentTarget.classList.add('dragging');
   };
@@ -102,7 +103,7 @@ const handleDragStart = (e, index) => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
 
-        .briefcase-root {
+.briefcase-root {
           position: relative;
           width: 100%;
           max-width: 1100px;
@@ -208,7 +209,7 @@ const handleDragStart = (e, index) => {
           box-shadow: inset 0 0 0 1px rgba(15,23,42,0.9);
         }
 
-        /* Layout wie KidsShelf:
+          /* Layout wie KidsShelf:
            3 Spalten (Wallet+Keys, Inventar, Stats+Aktionen),
            2 Reihen (Wallet/Stats oben, Keys/Aktionen unten, Inventar über beide Reihen) */
         .briefcase-layout {
@@ -645,7 +646,7 @@ const handleDragStart = (e, index) => {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          flex: 1;
+          flex: 1; /* Wichtig für Scroll-Berechnung */
         }
 
         .briefcase-inventory-header {
@@ -671,12 +672,13 @@ const handleDragStart = (e, index) => {
 
         .briefcase-inventory-scroll {
           position: relative;
-          flex: 1;
+          flex: 1; /* Wichtig für Scroll-Berechnung */
           border-radius: 10px;
           background:
             linear-gradient(180deg, #020617, #020617);
           border: 1px solid rgba(31,41,55,1);
           padding: 8px;
+          /* FIX 2: Scrollen aktivieren */
           overflow-y: auto;
         }
 
@@ -684,7 +686,8 @@ const handleDragStart = (e, index) => {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 8px;
-          min-height: 0;
+          /* FIX 3: Wichtig für Scroll und Flex-Layout */
+          min-height: 0; 
         }
 
         .briefcase-slot {
@@ -700,6 +703,7 @@ const handleDragStart = (e, index) => {
           padding: 6px;
           cursor: grab;
           transition: all 0.16s ease-out;
+          /* FIX 3: Einheitliche Größe */
           aspect-ratio: 1 / 1; 
           min-height: 0;
         }
@@ -806,34 +810,50 @@ const handleDragStart = (e, index) => {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 6px;
-          cursor: grab;
+        }
+        
+        /* FIX 1: Wrapper-Stil für Hotbar-Slots, der den Hotbar-Hintergrund bereitstellt */
+        .briefcase-hotbar-slot-wrapper {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            padding: 4px;
+            border-radius: 10px;
+            background: radial-gradient(circle at top, rgba(248,250,252,0.12), transparent 60%),
+                        linear-gradient(145deg, #020617, #020617);
+            border: 1px solid var(--accent-2, #22c55e);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.6), 0 8px 14px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Setze Hotbar Slot auf den Hotbar Style zurück */
+        .briefcase-hotbar-slot-wrapper .briefcase-slot {
+            border: none;
+            background: none;
+            padding: 0; 
+            box-shadow: none !important;
+            transform: none !important;
         }
 
-        .briefcase-hotbar-slot {
-          position: relative;
-          border-radius: 10px;
-          background:
-            radial-gradient(circle at top, rgba(248,250,252,0.12), transparent 60%),
-            linear-gradient(145deg, #020617, #020617);
-          border: 1px solid var(--accent-2, #22c55e);
-          box-shadow:
-            0 0 0 1px rgba(34,197,94,0.6),
-            0 8px 14px rgba(0,0,0,0.7);
-          padding: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        /* Hotbar Icon wird größer */
+        .briefcase-hotbar-slot-wrapper .briefcase-item-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 24px;
+            box-shadow: none;
+            border-radius: 12px;
+            background: rgba(15,23,42,0.9);
         }
 
-        .briefcase-hotbar-icon {
-          width: 34px;
-          height: 34px;
-          border-radius: 10px;
-          background: rgba(15,23,42,0.96);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 22px;
+        /* Korrektur des Hotbar-Item-QTY-Stils */
+        .briefcase-hotbar-slot-wrapper .briefcase-item-qty {
+             top: 4px; 
+             right: 6px; 
+             min-width: 22px; 
+             height: 18px; 
+             font-size: 11px;
+             padding: 0 6px;
         }
 
         /* ---------- AKTIONEN (rechts unten) ---------- */
@@ -1083,12 +1103,18 @@ const handleDragStart = (e, index) => {
                   <div className="briefcase-hotbar">
                     <div className="briefcase-hotbar-header">Hotbar • Schnellzugriff</div>
                     <div className="briefcase-hotbar-row">
-                      {/* Hotbar mappt die ersten 5 Items. Index ist 0 bis 4! */}
-                      {hotbarSlots.map((item, index) => (
-                        <div key={index} className="briefcase-hotbar-slot-wrapper">
-                            {renderSlot(item, index)}
-                        </div>
-                      ))}
+                      {hotbarItems.map((item, index) => {
+                          const isOccupied = isItemDefined(item);
+                          
+                          // Hotbar-Slots spiegeln die ersten 5 Hauptslots wider (Index 0-4)
+                          return (
+                              <div key={index} className="briefcase-hotbar-slot">
+                                  {isOccupied && (
+                                      <div className="briefcase-hotbar-icon">{item.emoji}</div>
+                                  )}
+                              </div>
+                          );
+                      })}
                     </div>
                   </div>
                 </div>
