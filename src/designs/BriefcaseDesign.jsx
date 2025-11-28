@@ -672,7 +672,7 @@ const handleDragStart = (e, index) => {
 
         .briefcase-inventory-scroll {
           position: relative;
-          flex: 1; /* Wichtig: Nimmt den restlichen Platz im Innerhalb des inneren Panels ein */
+          flex: 30vh; /* Wichtig: Nimmt den restlichen Platz im Innerhalb des inneren Panels ein */
           border-radius: 10px;
           background:
             linear-gradient(180deg, #020617, #020617);

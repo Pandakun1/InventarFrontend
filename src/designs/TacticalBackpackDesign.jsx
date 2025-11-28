@@ -6,9 +6,9 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
   const [hoveredItem, setHoveredItem] = useState(null);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
-  const isItemDefined = (item) => item !== null && item.emoji !== undefined && item.emoji !== '';
+  const isItemDefined = (item) => item !== null && item?.emoji !== undefined && item?.emoji !== '';
 
-  const hotbarItems = inventoryItems.slice(0, 5);
+  const hotbarSlots = inventoryItems.slice(0, 5);
   
   // Bestimme die zu verwendenden Animationsklassen
   const useGlow = animationKey === 'subtleGlow' || animationKey === 'scannerPulse';
@@ -34,10 +34,17 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
     
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.currentTarget.classList.add('drag-hover');
   };
+
+  const handleDragLeave = (e) => {
+    e.currentTarget.classList.remove('drag-hover');
+  };
+
 
   const handleDrop = (e, toIndex) => {
     e.preventDefault();
+    e.currentTarget.classList.remove('drag-hover');
     const fromIndex = parseInt(e.dataTransfer.getData('fromIndex'), 10);
     
     if (fromIndex !== toIndex) {
@@ -46,6 +53,51 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
     setDraggedItemIndex(null);
   };
 
+  // --- ENDE DRAG & DROP HANDLER ---
+
+  // Funktion zum Rendern eines einzelnen Slots (für Inventar und Hotbar)
+  const renderSlot = (item, index) => {
+    const isOccupied = isItemDefined(item);
+    const slotClass = `pack-slot ${!isOccupied ? 'empty' : ''} ${
+      selectedItem === item?.id ? 'selected' : ''
+    } ${useFlash ? 'pack-slot-flash' : ''} ${isOccupied && useGlow ? 'slot-glow' : ''}`;
+
+    return (
+      <div
+        key={index}
+        data-index={index}
+        className={slotClass}
+        onClick={() => setSelectedItem(selectedItem === item?.id ? null : item?.id)}
+        onMouseEnter={() => setHoveredItem(item?.id)}
+        onMouseLeave={() => setHoveredItem(null)}
+        
+        // DRAG & DROP Hinzufügen (Wird von Hotbar und Inventar genutzt)
+        draggable={isOccupied} // Nur belegte Slots sind ziehbar
+        onDragStart={(e) => handleDragStart(e, index)}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, index)}
+      >
+        {isOccupied && (
+          <>
+            <div className="pack-item-icon">{item.emoji}</div>
+            {item.quantity > 1 && (
+              <div className="pack-item-qty">{item.quantity}</div>
+            )}
+            {hoveredItem === item.id && (
+              <div
+                className="pack-tooltip"
+                style={{ left: '50%', bottom: '100%' }}
+              >
+                {item.name}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="pack-root">
@@ -642,7 +694,7 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
 
         .pack-inventory-scroll {
           position: relative;
-          flex: 1;
+          flex: 30vh;
           border-radius: 12px;
           background:
             linear-gradient(180deg, #020617, #020617);
@@ -655,6 +707,7 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 8px;
+          min-height: 0;
         }
 
         .pack-slot {
@@ -670,6 +723,8 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
           padding: 6px;
           cursor: grab;
           transition: all 0.16s ease-out;
+          aspect-ratio: 1 / 1;
+          min-height: 0;
         }
 
         .pack-slot.empty:hover {
@@ -801,6 +856,50 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
           align-items: center;
           justify-content: center;
           font-size: 22px;
+        }
+
+        .pack-hotbar-slot-wrapper {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            padding: 4px;
+            border-radius: 10px;
+            background: radial-gradient(circle at top, rgba(248,250,252,0.12), transparent 60%),
+                        linear-gradient(145deg, #020617, #020617);
+            border: 1px solid var(--accent-2, #22c55e);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.6), 0 8px 14px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Setze nested slot auf Hotbar-Style zurück */
+        .pack-hotbar-slot-wrapper .pack-slot {
+            border: none;
+            background: none;
+            padding: 0; 
+            box-shadow: none !important;
+            transform: none !important;
+            cursor: grab;
+        }
+
+        /* Hotbar Icon wird größer */
+        .pack-hotbar-slot-wrapper .pack-item-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 24px;
+            box-shadow: none;
+            border-radius: 12px;
+            background: rgba(15,23,42,0.9);
+        }
+
+        /* Korrektur des Hotbar-Item-QTY-Stils */
+        .pack-hotbar-slot-wrapper .pack-item-qty {
+             top: 4px; 
+             right: 6px; 
+             min-width: 22px; 
+             height: 18px; 
+             font-size: 11px;
+             padding: 0 6px;
         }
 
         /* ---------- ACTIONS (rechts unten) ---------- */
@@ -984,67 +1083,21 @@ export default function TacticalBackpackDesign({ themeKey, animationKey, invento
 
                 <div className="pack-inventory-scroll">
                   <div className="pack-inventory-grid">
-                    {inventoryItems.map((item, index) => {
-                      const isOccupied = isItemDefined(item);
-
-                      return (
-                        <div
-                          key={index}
-                          data-index={index}
-                          className={`pack-slot ${!isOccupied ? 'empty' : ''} ${
-                            selectedItem === item?.id ? 'selected' : ''
-                          } ${useFlash ? 'pack-slot-flash' : ''} ${isOccupied && useGlow ? 'slot-glow' : ''}`}
-                          onClick={() =>
-                            setSelectedItem(
-                              selectedItem === item?.id ? null : item?.id
-                            )
-                          }
-                          onMouseEnter={() => setHoveredItem(item?.id)}
-                          onMouseLeave={() => setHoveredItem(null)}
-                          
-                          // DRAG & DROP Hinzufügen
-                          draggable={isOccupied}
-                          onDragStart={(e) => handleDragStart(e, index)}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={handleDragOver}
-                          onDrop={(e) => handleDrop(e, index)}
-                        >
-                          {isOccupied && (
-                            <>
-                              <div className="pack-item-icon">{item.emoji}</div>
-                              {item.quantity > 1 && (
-                                <div className="pack-item-qty">{item.quantity}</div>
-                              )}
-                              {hoveredItem === item.id && (
-                                <div
-                                  className="pack-tooltip"
-                                  style={{ left: '50%', bottom: '100%' }}
-                                >
-                                  {item.name}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {/* Inventar Slots (Index 0 bis 49) */}
+                    {inventoryItems.map((item, index) => renderSlot(item, index))}
                   </div>
                 </div>
 
-                {/* Hotbar */}
+                {/* Hotbar: Nutzt renderSlot für D&D und wickelt ihn in einen Hotbar-Wrapper-Stil */}
                 <div className="pack-hotbar">
                   <div className="pack-hotbar-header">Hotbar • Schnellzugriff</div>
                   <div className="pack-hotbar-row">
-                    {hotbarItems.map((item, index) => {
-                      const isOccupied = isItemDefined(item);
-                      return (
-                        <div key={index} className="pack-hotbar-slot">
-                          {isOccupied && (
-                            <div className="pack-hotbar-icon">{item.emoji}</div>
-                          )}
-                        </div>
-                      )
-                    })}
+                    {/* Hotbar mappt die ersten 5 Items. Index ist 0 bis 4! */}
+                    {hotbarSlots.map((item, index) => (
+                      <div key={index} className="pack-hotbar-slot-wrapper">
+                          {renderSlot(item, index)}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

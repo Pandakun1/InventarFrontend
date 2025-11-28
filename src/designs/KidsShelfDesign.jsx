@@ -6,11 +6,11 @@ export default function KidsShelfDesign({ themeKey, animationKey, inventoryItems
   const [hoveredItem, setHoveredItem] = useState(null);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
-  const isItemDefined = (item) => item !== null && item.emoji !== undefined && item.emoji !== '';
+  const isItemDefined = (item) => item !== null && item?.emoji !== undefined && item?.emoji !== '';
 
   const isPinkTheme = themeKey === 'neonMiami'; // pinkes Theme => Teddy im Regal
 
-  const hotbarItems = inventoryItems.slice(0, 5); // Hotbar = erste 5 Items
+  const hotbarSlots = inventoryItems.slice(0, 5); // Hotbar = erste 5 Slots (Index 0 bis 4)
   
   // Bestimme die zu verwendenden Animationsklassen
   const useGlow = animationKey === 'subtleGlow' || animationKey === 'scannerPulse';
@@ -36,10 +36,16 @@ export default function KidsShelfDesign({ themeKey, animationKey, inventoryItems
     
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.currentTarget.classList.add('drag-hover');
+  };
+  
+  const handleDragLeave = (e) => {
+    e.currentTarget.classList.remove('drag-hover');
   };
 
   const handleDrop = (e, toIndex) => {
     e.preventDefault();
+    e.currentTarget.classList.remove('drag-hover');
     const fromIndex = parseInt(e.dataTransfer.getData('fromIndex'), 10);
     
     if (fromIndex !== toIndex) {
@@ -48,6 +54,49 @@ export default function KidsShelfDesign({ themeKey, animationKey, inventoryItems
     setDraggedItemIndex(null);
   };
 
+  // Funktion zum Rendern eines einzelnen Slots (für Inventar und Hotbar)
+  const renderSlot = (item, index) => {
+    const isOccupied = isItemDefined(item);
+    const slotClass = `kids-inventory-slot ${!isOccupied ? 'empty' : ''} ${
+      selectedItem === item?.id ? 'selected' : ''
+    } ${useFlash ? 'kids-slot-flash' : ''} ${isOccupied && useGlow ? 'slot-glow' : ''}`;
+
+    return (
+      <div
+        key={index}
+        data-index={index}
+        className={slotClass}
+        onClick={() => setSelectedItem(selectedItem === item?.id ? null : item?.id)}
+        onMouseEnter={() => setHoveredItem(item?.id)}
+        onMouseLeave={() => setHoveredItem(null)}
+        
+        // DRAG & DROP Hinzufügen (Wird von Hotbar und Inventar genutzt)
+        draggable={isOccupied} // Nur belegte Slots sind ziehbar
+        onDragStart={(e) => handleDragStart(e, index)}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, index)}
+      >
+        {isOccupied && (
+          <>
+            <div className="kids-item-icon">{item.emoji}</div>
+            {item.quantity > 1 && (
+              <div className="kids-item-qty">{item.quantity}</div>
+            )}
+            {hoveredItem === item.id && (
+              <div
+                className="kids-tooltip"
+                style={{ left: '50%', bottom: '100%' }}
+              >
+                {item.name}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="kids-root">
@@ -529,7 +578,7 @@ export default function KidsShelfDesign({ themeKey, animationKey, inventoryItems
 
         .kids-inventory-scroll {
           position: relative;
-          flex: 1;
+          flex: 30vh;
           border-radius: 12px;
           background:
             linear-gradient(180deg, #020617, #020617);
@@ -568,6 +617,8 @@ export default function KidsShelfDesign({ themeKey, animationKey, inventoryItems
           padding: 6px;
           cursor: grab;
           transition: all 0.16s ease-out;
+          aspect-ratio: 1 / 1;
+          min-height: 0;
         }
 
         .kids-inventory-slot.empty:hover {
@@ -689,6 +740,50 @@ export default function KidsShelfDesign({ themeKey, animationKey, inventoryItems
           align-items: center;
           justify-content: center;
           font-size: 22px;
+        }
+
+        .kids-hotbar-slot-wrapper {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            padding: 4px;
+            border-radius: 10px;
+            background: radial-gradient(circle at top left, rgba(248,250,252,0.12), transparent 55%),
+                        linear-gradient(145deg, #020617, #020617);
+            border: 1px solid var(--accent-2, #22c55e);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.6), 0 8px 14px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Setze nested slot auf Hotbar-Style zurück */
+        .kids-hotbar-slot-wrapper .kids-inventory-slot {
+            border: none;
+            background: none;
+            padding: 0; 
+            box-shadow: none !important;
+            transform: none !important;
+            cursor: grab;
+        }
+
+        /* Hotbar Icon wird größer */
+        .kids-hotbar-slot-wrapper .kids-item-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 22px;
+            box-shadow: none;
+            border-radius: 10px;
+            background: rgba(15,23,42,0.96);
+        }
+
+        /* Korrektur des Hotbar-Item-QTY-Stils */
+        .kids-hotbar-slot-wrapper .kids-item-qty {
+             top: 4px; 
+             right: 6px; 
+             min-width: 22px; 
+             height: 18px; 
+             font-size: 11px;
+             padding: 0 6px;
         }
 
         /* ---------- AKTIONEN (rechts unten, Spalte 3, Zeile 2) ---------- */
@@ -867,67 +962,21 @@ export default function KidsShelfDesign({ themeKey, animationKey, inventoryItems
                   <div className="kids-inventory-teddy-bg">🧸</div>
                 )}
                 <div className="kids-inventory-grid">
-                  {inventoryItems.map((item, index) => {
-                    const isOccupied = isItemDefined(item);
-
-                    return (
-                      <div
-                        key={index}
-                        data-index={index}
-                        className={`kids-inventory-slot ${!isOccupied ? 'empty' : ''} ${
-                          selectedItem === item?.id ? 'selected' : ''
-                        } ${useFlash ? 'kids-slot-flash' : ''} ${isOccupied && useGlow ? 'slot-glow' : ''}`}
-                        onClick={() =>
-                          setSelectedItem(
-                            selectedItem === item?.id ? null : item?.id
-                          )
-                        }
-                        onMouseEnter={() => setHoveredItem(item?.id)}
-                        onMouseLeave={() => setHoveredItem(null)}
-                        
-                        // DRAG & DROP Hinzufügen
-                        draggable={isOccupied}
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, index)}
-                      >
-                        {isOccupied && (
-                          <>
-                            <div className="kids-item-icon">{item.emoji}</div>
-                            {item.quantity > 1 && (
-                              <div className="kids-item-qty">{item.quantity}</div>
-                            )}
-                            {hoveredItem === item.id && (
-                              <div
-                                className="kids-tooltip"
-                                style={{ left: '50%', bottom: '100%' }}
-                              >
-                                {item.name}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {/* Inventar Slots (Index 0 bis 49) */}
+                  {inventoryItems.map((item, index) => renderSlot(item, index))}
                 </div>
               </div>
 
-              {/* Hotbar */}
+              {/* Hotbar: Nutzt renderSlot für D&D und wickelt ihn in einen Hotbar-Wrapper-Stil */}
               <div className="kids-hotbar">
                 <div className="kids-hotbar-header">Hotbar • Schnellzugriff</div>
                 <div className="kids-hotbar-row">
-                  {hotbarItems.map((item, index) => {
-                    const isOccupied = isItemDefined(item);
-                    return (
-                      <div key={index} className="kids-hotbar-slot">
-                        {isOccupied && (
-                          <div className="kids-hotbar-icon">{item.emoji}</div>
-                        )}
-                      </div>
-                    )
-                  })}
+                  {/* Hotbar mappt die ersten 5 Items. Index ist 0 bis 4! */}
+                  {hotbarSlots.map((item, index) => (
+                    <div key={index} className="kids-hotbar-slot-wrapper">
+                        {renderSlot(item, index)}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

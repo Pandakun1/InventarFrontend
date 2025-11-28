@@ -8,15 +8,17 @@ export default function SciFiHudDesign({ themeKey, animationKey, inventoryItems,
   const [draggedItemIndex, setDraggedItemIndex] = useState(null); // State für den Index des gezogenen Items
 
   // Item ist definiert, wenn es nicht null ist
-  const isItemDefined = (item) => item !== null && item.emoji !== undefined && item.emoji !== '';
+  const isItemDefined = (item) => item !== null && item?.emoji !== undefined && item?.emoji !== '';
 
-  const hotbarItems = inventoryItems.slice(0, 5);
+  const hotbarSlots = inventoryItems.slice(0, 5);
 
   // Bestimme die zu verwendenden Animationsklassen
   const useGlow = animationKey === 'subtleGlow' || animationKey === 'scannerPulse';
   const useFlash = animationKey === 'quickResponse';
   const usePulse = animationKey === 'scannerPulse';
   const useScan = animationKey === 'scannerPulse'; // Speziell für Sci-Fi/HUD
+
+  // --- DRAG & DROP HANDLER ---
 
   const handleDragStart = (e, index) => {
     if (!isItemDefined(inventoryItems[index])) {
@@ -35,16 +37,69 @@ export default function SciFiHudDesign({ themeKey, animationKey, inventoryItems,
     
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.currentTarget.classList.add('drag-hover');
   };
+
+  const handleDragLeave = (e) => {
+    e.currentTarget.classList.remove('drag-hover');
+  };
+
 
   const handleDrop = (e, toIndex) => {
     e.preventDefault();
+    e.currentTarget.classList.remove('drag-hover');
     const fromIndex = parseInt(e.dataTransfer.getData('fromIndex'), 10);
     
     if (fromIndex !== toIndex) {
       moveItem(fromIndex, toIndex);
     }
     setDraggedItemIndex(null);
+  };
+
+  // --- ENDE DRAG & DROP HANDLER ---
+  
+  // Funktion zum Rendern eines einzelnen Slots (für Inventar und Hotbar)
+  const renderSlot = (item, index) => {
+    const isOccupied = isItemDefined(item);
+    const slotClass = `hud-slot ${!isOccupied ? 'empty' : ''} ${
+      selectedItem === item?.id ? 'selected' : ''
+    } ${useFlash ? 'hud-slot-flash' : ''} ${isOccupied && useGlow ? 'slot-glow' : ''}`;
+
+    return (
+      <div
+        key={index}
+        data-index={index}
+        className={slotClass}
+        onClick={() => setSelectedItem(selectedItem === item?.id ? null : item?.id)}
+        onMouseEnter={() => setHoveredItem(item?.id)}
+        onMouseLeave={() => setHoveredItem(null)}
+        
+        // DRAG & DROP Hinzufügen (Wird von Hotbar und Inventar genutzt)
+        draggable={isOccupied} // Nur belegte Slots sind ziehbar
+        onDragStart={(e) => handleDragStart(e, index)}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, index)}
+      >
+        {isOccupied && (
+          <>
+            <div className="hud-item-icon">{item.emoji}</div>
+            {item.quantity > 1 && (
+              <div className="hud-item-qty">{item.quantity}</div>
+            )}
+            {hoveredItem === item.id && (
+              <div
+                className="hud-tooltip"
+                style={{ left: '50%', bottom: '100%' }}
+              >
+                {item.name}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -626,7 +681,7 @@ export default function SciFiHudDesign({ themeKey, animationKey, inventoryItems,
 
         .hud-inventory-scroll {
           position: relative;
-          flex: 1;
+          flex: 30vh;
           border-radius: 10px;
           background: radial-gradient(circle at center, rgba(15,23,42,0.9), #020617);
           border: 1px solid rgba(31,41,55,1);
@@ -638,6 +693,7 @@ export default function SciFiHudDesign({ themeKey, animationKey, inventoryItems,
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 7px;
+          min-height: 0;
         }
 
         .hud-slot {
@@ -654,6 +710,8 @@ export default function SciFiHudDesign({ themeKey, animationKey, inventoryItems,
           padding: 5px;
           cursor: grab;
           transition: all 0.15s ease-out;
+          aspect-ratio: 1 / 1;
+          min-height: 0;
         }
 
         .hud-slot.empty:hover {
@@ -783,6 +841,49 @@ export default function SciFiHudDesign({ themeKey, animationKey, inventoryItems,
           align-items: center;
           justify-content: center;
           font-size: 20px;
+        }
+
+        .hud-hotbar-slot-wrapper {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            padding: 3px;
+            border-radius: 9px;
+            background: radial-gradient(circle at top, rgba(15,23,42,0.85), transparent 80%);
+            border: 1px solid var(--accent-2, #22c55e);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.6), 0 8px 14px rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Setze nested slot auf Hotbar-Style zurück */
+        .hud-hotbar-slot-wrapper .hud-slot {
+            border: none;
+            background: none;
+            padding: 0; 
+            box-shadow: none !important;
+            transform: none !important;
+            cursor: grab;
+        }
+
+        /* Hotbar Icon wird größer */
+        .hud-hotbar-slot-wrapper .hud-item-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            box-shadow: none;
+            border-radius: 8px;
+            background: rgba(15,23,42,0.95);
+        }
+
+        /* Korrektur des Hotbar-Item-QTY-Stils */
+        .hud-hotbar-slot-wrapper .hud-item-qty {
+             top: 3px; 
+             right: 4px; 
+             min-width: 20px; 
+             height: 16px; 
+             font-size: 10px;
+             padding: 0 5px;
         }
 
         /* ---------- ACTIONS (rechts unten) ---------- */
@@ -975,67 +1076,21 @@ export default function SciFiHudDesign({ themeKey, animationKey, inventoryItems,
 
                 <div className="hud-inventory-scroll">
                   <div className="hud-inventory-grid">
-                    {inventoryItems.map((item, index) => {
-                      const isOccupied = isItemDefined(item);
-
-                      return (
-                        <div
-                          key={index}
-                          data-index={index}
-                          className={`hud-slot ${!isOccupied ? 'empty' : ''} ${
-                            selectedItem === item?.id ? 'selected' : ''
-                          } ${useFlash ? 'hud-slot-flash' : ''} ${isOccupied && useGlow ? 'slot-glow' : ''}`}
-                          onClick={() =>
-                            setSelectedItem(
-                              selectedItem === item?.id ? null : item?.id
-                            )
-                          }
-                          onMouseEnter={() => setHoveredItem(item?.id)}
-                          onMouseLeave={() => setHoveredItem(null)}
-                          
-                          // DRAG & DROP Hinzufügen
-                          draggable={isOccupied}
-                          onDragStart={(e) => handleDragStart(e, index)}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={handleDragOver}
-                          onDrop={(e) => handleDrop(e, index)}
-                        >
-                          {isOccupied && (
-                            <>
-                              <div className="hud-item-icon">{item.emoji}</div>
-                              {item.quantity > 1 && (
-                                <div className="hud-item-qty">{item.quantity}</div>
-                              )}
-                              {hoveredItem === item.id && (
-                                <div
-                                  className="hud-tooltip"
-                                  style={{ left: '50%', bottom: '100%' }}
-                                >
-                                  {item.name}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {/* Inventar Slots (Index 0 bis 49) */}
+                    {inventoryItems.map((item, index) => renderSlot(item, index))}
                   </div>
                 </div>
 
-                {/* Hotbar */}
+                {/* Hotbar: Nutzt renderSlot für D&D und wickelt ihn in einen Hotbar-Wrapper-Stil */}
                 <div className="hud-hotbar">
                   <div className="hud-hotbar-header">Hotbar • Quick Access</div>
                   <div className="hud-hotbar-row">
-                    {hotbarItems.map((item, index) => {
-                      const isOccupied = isItemDefined(item);
-                      return (
-                        <div key={index} className="hud-hotbar-slot">
-                          {isOccupied && (
-                            <div className="hud-hotbar-icon">{item.emoji}</div>
-                          )}
-                        </div>
-                      )
-                    })}
+                    {/* Hotbar mappt die ersten 5 Items. Index ist 0 bis 4! */}
+                    {hotbarSlots.map((item, index) => (
+                      <div key={index} className="hud-hotbar-slot-wrapper">
+                          {renderSlot(item, index)}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
