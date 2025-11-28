@@ -260,73 +260,99 @@ export default function SurvivalInventory() {
             transform: scale(1) !important;
         }
 
+        .ui-select-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+            gap: 4px; 
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 4px 8px;
+        }
+
+        .ui-select-label {
+            font-size: calc(var(--ui-scale) * 1000);
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #94a3b8;
+            padding-right: 4px;
+        }
+
+        .ui-select {
+            background: #020617;
+            color: #f8fafc;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: calc(var(--ui-scale) * 1100);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            appearance: none; /* Entfernt native Dropdown-Pfeile */
+            cursor: pointer;
+            outline: none;
+            transition: background 0.1s;
+        }
+
+        .ui-select:focus, .ui-select:hover {
+            background: #1e293b;
+        }
+
       `}</style>
 
-      <div className="w-full h-full">
-        {/* Switcher-Leiste */}
-        <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-          <div className="inline-flex items-center gap-2 bg-black/60 border border-slate-700/80 rounded-full px-3 py-2">
-            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400 mr-1">
-              Layout
-            </span>
-            {Object.entries(LAYOUTS).map(([key, layout]) => (
-              <button
-                key={key}
-                onClick={() => setLayoutKey(key)}
-                className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.14em] border transition
-                  ${
-                    layoutKey === key
-                      ? 'bg-slate-900/90 text-amber-300 border-amber-400/80'
-                      : 'bg-slate-900/40 text-slate-400 border-slate-700/70 hover:text-amber-200'
-                  }`}
+      <div className="w-full h-full"> 
+        {/* NEUE DROPDOWN-LEISTE */}
+        <div className="center justify-start items-center mb-6 gap-4 flex-wrap flex">
+          <div className="ui-select-container">
+            {/* 1. Layout Selction */}
+            <div className="ui-select-container">
+              <span className="ui-select-label">Layout</span>
+              <select 
+                value={layoutKey} 
+                onChange={(e) => setLayoutKey(e.target.value)} 
+                className="ui-select"
               >
-                {layout.name}
-              </button>
-            ))}
-          </div>
-          
-          <div className="inline-flex items-center gap-2 bg-black/60 border border-slate-700/80 rounded-full px-3 py-2">
-            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400 mr-1">
-              Theme
-            </span>
-            {Object.entries(THEMES).map(([key, theme]) => (
-              <button
-                key={key}
-                onClick={() => setThemeKey(key)}
-                className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.14em] border transition
-                  ${
-                    themeKey === key
-                      ? 'bg-slate-900/80 text-accent-1 border-amber-400/80'
-                      : 'bg-slate-900/40 text-slate-400 border-slate-700/70 hover:text-accent-2'
-                  }`}
-              >
-                {theme.name}
-              </button>
-            ))}
-          </div>
+                {Object.entries(LAYOUTS).map(([key, layout]) => (
+                  <option key={key} value={key}>
+                    {layout.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* NEUE ANIMATIONS-AUSWAHL */}
-          <div className="inline-flex items-center gap-2 bg-black/60 border border-slate-700/80 rounded-full px-3 py-2">
-            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400 mr-1">
-              Animation
-            </span>
-            {Object.entries(ANIMATIONS).map(([key, animation]) => (
-              <button
-                key={key}
-                onClick={() => setAnimationKey(key)}
-                className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.14em] border transition
-                  ${
-                    animationKey === key
-                      ? 'bg-slate-900/80 text-accent-2 border-slate-400/80'
-                      : 'bg-slate-900/40 text-slate-400 border-slate-700/70 hover:text-accent-3'
-                  }`}
+                {/* 2. Layout Selction */}
+            <div className="ui-select-container">
+              <span className="ui-select-label">Theme</span>
+              <select 
+                value={themeKey} 
+                onChange={(e) => setThemeKey(e.target.value)} 
+                className="ui-select"
               >
-                {animation.name}
-              </button>
-            ))}
+                {Object.entries(THEMES).map(([key, theme]) => (
+                  <option key={key} value={key}>
+                    {theme.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 3. Animation Dropdown */}
+            <div className="ui-select-container">
+              <span className="ui-select-label">Animation</span>
+              <select 
+                value={animationKey} 
+                onChange={(e) => setAnimationKey(e.target.value)} 
+                className="ui-select"
+              >
+                {Object.entries(ANIMATIONS).map(([key, animation]) => (
+                  <option key={key} value={key}>
+                    {animation.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
-
         {/* Hier wird das aktuelle Design gerendert */}
         {renderLayout()}
       </div>

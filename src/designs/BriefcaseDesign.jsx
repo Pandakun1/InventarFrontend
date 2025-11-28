@@ -103,12 +103,11 @@ const handleDragStart = (e, index) => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
 
-        .briefcase-root {
+.briefcase-root {
           position: relative;
-          width: 90%;
-          max-width: 90%;
+          width: 100%;
+          max-width: 1100px;
           aspect-ratio: 16 / 9;
-          max-height: 90%;
           margin: 0 auto;
           display: flex;
           align-items: center;
@@ -673,7 +672,7 @@ const handleDragStart = (e, index) => {
 
         .briefcase-inventory-scroll {
           position: relative;
-          flex: 300px;
+          flex: 30vh; /* Wichtig: Nimmt den restlichen Platz im Innerhalb des inneren Panels ein */
           border-radius: 10px;
           background:
             linear-gradient(180deg, #020617, #020617);
