@@ -65,7 +65,7 @@ export default function SurvivalInventory() {
   const [items, setItems] = useState(PADDED_ITEMS); // Inventar-Items jetzt als State
   const [layoutKey, setLayoutKey] = useState('briefcase');
   const [themeKey, setThemeKey] = useState('classicLeather');
-  const [animationKey, setAnimationKey] = useState('none'); 
+  const [animationKey, setAnimationKey] = useState('none');
   
   // NEUE FUNKTION: Verschieben von Items (Drag & Drop Logik)
   const moveItem = (fromIndex, toIndex) => {
@@ -262,8 +262,7 @@ export default function SurvivalInventory() {
 
       `}</style>
 
-      {/* HIER kleiner gemacht: max-w-[1100px] statt 1400px */}
-      <div className="w-full max-w-[1100px]">
+      <div className="w-full h-full">
         {/* Switcher-Leiste */}
         <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
           <div className="inline-flex items-center gap-2 bg-black/60 border border-slate-700/80 rounded-full px-3 py-2">
