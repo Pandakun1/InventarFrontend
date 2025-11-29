@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useInventoryStore } from '@/stores/inventory'
+import { useInventoryStore } from './stores/inventory'
 import BriefcaseDesign from './designs/BriefcaseDesign.vue'
 import KidsShelfDesign from './designs/KidsShelfDesign.vue'
 import TacticalBackpackDesign from './designs/TacticalBackpackDesign.vue'
@@ -8,29 +8,6 @@ import RetroDrawerDesign from './designs/RetroDrawerDesign.vue'
 import SciFiHudDesign from './designs/SciFiHudDesign.vue'
 
 const store = useInventoryStore()
-
-const LAYOUTS = {
-  briefcase: { name: 'Koffer', key: 'briefcase' },
-  kidsShelf: { name: 'Kinderregal', key: 'kidsShelf' },
-  tacticalBackpack: { name: 'Taktischer Rucksack', key: 'tacticalBackpack' },
-  retroDrawer: { name: 'Retro Schubladen', key: 'retroDrawer' },
-  sciFiHud: { name: 'Sci-Fi HUD', key: 'sciFiHud' },
-}
-
-const THEMES = {
-  classicLeather: { name: 'Classic Leder', key: 'classicLeather' },
-  nightOps: { name: 'Night Ops', key: 'nightOps' },
-  desertDust: { name: 'Desert Dust', key: 'desertDust' },
-  neonMiami: { name: 'Neon Miami', key: 'neonMiami' },
-  arcticBlue: { name: 'Arctic Blue', key: 'arcticBlue' },
-}
-
-const ANIMATIONS = {
-  none: { name: 'Keine', key: 'none' },
-  subtleGlow: { name: 'Subtiles Glühen', key: 'subtleGlow' },
-  quickResponse: { name: 'Schnelle Reaktion', key: 'quickResponse' },
-  scannerPulse: { name: 'Scanner-Puls', key: 'scannerPulse' },
-}
 
 const keys = [
   { name: 'Autoschlüssel', icon: '🚗🔑' },
@@ -64,7 +41,7 @@ const currentComponent = computed(() => {
     case 'retroDrawer':
       return RetroDrawerDesign
     default:
-      return RetroDrawerDesign
+      return BriefcaseDesign
   }
 })
 </script>
@@ -77,64 +54,21 @@ const currentComponent = computed(() => {
       `layout-${store.layoutKey}`
     ]"
   >
+    <!-- Settings Menu -->
+    <SettingsMenu />
+
     <div class="w-full h-full">
-      <!-- DROPDOWN-LEISTE -->
-      <div class="center justify-start items-center mb-6 gap-4 flex-wrap flex">
-        <div class="ui-select-container">
-          <!-- 1. Layout Selection -->
-          <div class="ui-select-container">
-            <span class="ui-select-label">Layout</span>
-            <select v-model="store. layoutKey" class="ui-select">
-              <option
-                v-for="(layout, key) in LAYOUTS"
-                :key="key"
-                :value="key"
-              >
-                {{ layout.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- 2. Theme Selection -->
-          <div class="ui-select-container">
-            <span class="ui-select-label">Theme</span>
-            <select v-model="store.themeKey" class="ui-select">
-              <option
-                v-for="(theme, key) in THEMES"
-                :key="key"
-                :value="key"
-              >
-                {{ theme.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- 3.  Animation Selection -->
-          <div class="ui-select-container">
-            <span class="ui-select-label">Animation</span>
-            <select v-model="store.animationKey" class="ui-select">
-              <option
-                v-for="(animation, key) in ANIMATIONS"
-                :key="key"
-                :value="key"
-              >
-                {{ animation.name }}
-              </option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       <!-- Dynamisches Design-Component -->
       <component
         :is="currentComponent"
         :theme-key="store.themeKey"
         :animation-key="store.animationKey"
         :inventory-items="store.items"
-        :move-item="store. moveItem"
+        :move-item="store.moveItem"
         :keys="keys"
         :licenses="licenses"
         :stats="stats"
+        @open-settings="store.toggleSettings()"
       />
     </div>
   </div>
@@ -258,14 +192,14 @@ const currentComponent = computed(() => {
   box-shadow: 0 0 10px 4px var(--animation-pulse-color, #f97316), inset 0 0 0 2px var(--animation-pulse-color, #f97316) !important;
   transform: scale(1.01);
 }
-. dragging {
+.dragging {
   opacity: 0.5;
   border: 2px dashed var(--animation-pulse-color, #f97316) !important;
   box-shadow: none !important;
   transform: scale(1) !important;
 }
 
-. ui-select-container {
+.ui-select-container {
   display: flex;
   align-items: center;
   position: relative;
@@ -301,5 +235,10 @@ const currentComponent = computed(() => {
 
 .ui-select:focus, .ui-select:hover {
   background: #1e293b;
+}
+
+.min-h-screen {
+  max-width: 58%;
+  margin: 0 auto;
 }
 </style>

@@ -8,11 +8,10 @@ const selectedItem = ref<number | null>(null)
 const hoveredItem = ref<number | null>(null)
 const draggedItemIndex = ref<number | null>(null)
 
+defineEmits(['openSettings'])
+
 // Item ist definiert, wenn es nicht null ist
 const isItemDefined = (item: any) => item !== null && item?. emoji !== undefined && item?.emoji !== ''
-
-// Hotbar sind die ersten 5 Slots im Hauptinventar-Array
-const hotbarSlots = computed(() => props.inventoryItems. slice(0, 5))
 
 // Bestimme die zu verwendenden Animationsklassen
 const useGlow = computed(() => props.animationKey === 'subtleGlow' || props.animationKey === 'scannerPulse')
@@ -51,6 +50,29 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
   
   if (fromIndex !== toIndex) {
     props.moveItem(fromIndex, toIndex)
+  }
+  draggedItemIndex.value = null
+}
+
+const handleHotbarDragStart = (e: DragEvent, index: number) => {
+  if (! isItemDefined(props.hotbarItems[index])) {
+    e.preventDefault()
+    return
+  }
+  draggedItemIndex.value = index
+  e.dataTransfer! .setData('fromIndex', index. toString())
+  e.dataTransfer!.setData('source', 'hotbar')
+  ;(e.currentTarget as HTMLElement).classList.add('dragging')
+}
+
+const handleHotbarDrop = (e: DragEvent, toIndex: number) => {
+  e.preventDefault()
+  ;(e.currentTarget as HTMLElement).classList.remove('drag-hover')
+  const fromIndex = parseInt(e.dataTransfer!.getData('fromIndex'), 10)
+  const source = e.dataTransfer!. getData('source')
+  
+  if (source === 'hotbar' && fromIndex !== toIndex) {
+    props.moveHotbarItem(fromIndex, toIndex)
   }
   draggedItemIndex.value = null
 }
@@ -169,7 +191,8 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
                       :data-index="index"
                       :class="[
                         'briefcase-slot',
-                        ! isItemDefined(item) ?  'empty' : '',
+                        index < 5 ? 'briefcase-hotbar-style' : '',  // NEU: Hotbar-Style für erste 5! 
+                        !isItemDefined(item) ? 'empty' : '',
                         selectedItem === item?. id ? 'selected' : '',
                         useFlash ? 'briefcase-slot-flash' : '',
                         isItemDefined(item) && useGlow ? 'slot-glow' : ''
@@ -184,6 +207,9 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
                       @dragleave="handleDragLeave"
                       @drop="(e) => handleDrop(e, index)"
                     >
+                      <!-- NEU: Hotbar-Nummer hinzufügen -->
+                    <div v-if="index < 5" :class="['briefcase-hotbar-number', usePulse ? 'pulse-active' : '']">{{ index + 1 }}</div>
+                      
                       <template v-if="isItemDefined(item)">
                         <div class="briefcase-item-icon">{{ item.emoji }}</div>
                         <div
@@ -193,63 +219,13 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
                           {{ item.quantity }}
                         </div>
                         <div
-                          v-if="hoveredItem === item. id"
+                          v-if="hoveredItem === item.id"
                           class="briefcase-tooltip"
                           style="left: 50%; bottom: 100%"
                         >
-                          {{ item.name }}
+                          {{ item. name }}
                         </div>
                       </template>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Hotbar: Nutzt dieselbe Slot-Logik -->
-                <div class="briefcase-hotbar">
-                  <div class="briefcase-hotbar-header">Hotbar • Schnellzugriff</div>
-                  <div class="briefcase-hotbar-row">
-                    <!-- Hotbar mappt die ersten 5 Items.  Index ist 0 bis 4!  -->
-                    <div
-                      v-for="(item, index) in hotbarSlots"
-                      :key="index"
-                      class="briefcase-hotbar-slot-wrapper"
-                    >
-                      <div
-                        :data-index="index"
-                        :class="[
-                          'briefcase-slot',
-                          !isItemDefined(item) ? 'empty' : '',
-                          selectedItem === item?.id ? 'selected' : '',
-                          useFlash ? 'briefcase-slot-flash' : '',
-                          isItemDefined(item) && useGlow ? 'slot-glow' : ''
-                        ]"
-                        :draggable="isItemDefined(item)"
-                        @click="selectedItem = selectedItem === item?.id ? null : item?.id"
-                        @mouseenter="hoveredItem = item?.id"
-                        @mouseleave="hoveredItem = null"
-                        @dragstart="(e) => handleDragStart(e, index)"
-                        @dragend="handleDragEnd"
-                        @dragover="handleDragOver"
-                        @dragleave="handleDragLeave"
-                        @drop="(e) => handleDrop(e, index)"
-                      >
-                        <template v-if="isItemDefined(item)">
-                          <div class="briefcase-item-icon">{{ item.emoji }}</div>
-                          <div
-                            v-if="item.quantity > 1"
-                            class="briefcase-item-qty"
-                          >
-                            {{ item.quantity }}
-                          </div>
-                          <div
-                            v-if="hoveredItem === item.id"
-                            class="briefcase-tooltip"
-                            style="left: 50%; bottom: 100%"
-                          >
-                            {{ item.name }}
-                          </div>
-                        </template>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -257,9 +233,9 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
             </div>
 
             <!-- rechts unten: Aktionen -->
-            <div class="briefcase-actions-panel">
+            <div :class="['briefcase-actions-panel', useGlow ? 'briefcase-panel-glow' : '']">
               <div class="briefcase-actions-title">Aktionen</div>
-              <button :class="['briefcase-action-button primary', usePulse ? 'briefcase-pulse' : '']">
+              <button :class="['briefcase-action-button primary', usePulse ? 'pulse-active' : '']">
                 Auf den Boden ablegen
               </button>
               <button class="briefcase-action-button">
@@ -267,6 +243,14 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
               </button>
               <button class="briefcase-action-button">
                 Geben-Modus
+              </button>
+              
+              <!-- NEU: Einstellungs-Button -->
+              <button 
+                class="briefcase-action-button settings"
+                @click="$emit('openSettings')"
+              >
+                ⚙️ Einstellungen
               </button>
             </div>
           </div>
@@ -277,7 +261,7 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis. com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
 
 . briefcase-root {
   position: relative;
@@ -385,7 +369,7 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
 
 .briefcase-layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 220px;
+  grid-template-columns: 260px 380px 220px;  /* ← Hier geändert!  */
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
@@ -950,70 +934,75 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
   to { opacity: 1; transform: translate(-50%, -100%); }
 }
 
-/* HOTBAR */
-
-.briefcase-hotbar {
-  margin-top: 6px;
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, #020617, #020617);
-  border: 1px solid rgba(55,65,81,0.9);
-  padding: 6px 8px;
-}
-
-.briefcase-hotbar-header {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: #9ca3af;
-  margin-bottom: 4px;
-}
-
-.briefcase-hotbar-row {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.briefcase-hotbar-slot-wrapper {
+/* Hotbar-Style für die ersten 5 Inventar-Slots */
+.briefcase-slot. briefcase-hotbar-style {
   position: relative;
-  aspect-ratio: 1 / 1;
-  padding: 4px;
-  border-radius: 10px;
-  background: radial-gradient(circle at top, rgba(248,250,252,0.12), transparent 60%),
+  padding: 6px;  /* Etwas mehr Padding für den dickeren Rahmen */
+  border-radius: 12px;
+  background: radial-gradient(circle at top, rgba(248,250,252,0.18), transparent 60%),
               linear-gradient(145deg, #020617, #020617);
-  border: 1px solid var(--accent-2, #22c55e);
-  box-shadow: 0 0 0 1px rgba(34,197,94,0.6), 0 8px 14px rgba(0,0,0,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 3px solid var(--accent-2, #22c55e) ! important;  /* Dickerer Border */
+  box-shadow: 
+    0 0 0 2px rgba(34,197,94,0.4),  /* Äußerer Glow */
+    0 0 16px rgba(34,197,94,0.6),   /* Starker Glow */
+    inset 0 0 20px rgba(34,197,94,0.1),  /* Innerer Glow */
+    0 8px 14px rgba(0,0,0,0.7) !important;
 }
 
-.briefcase-hotbar-slot-wrapper . briefcase-slot {
-  border: none;
-  background: none;
-  padding: 0;
-  box-shadow: none ! important;
-  transform: none !important;
-  cursor: grab;
+.briefcase-slot. briefcase-hotbar-style:hover {
+  transform: translateY(-2px) scale(1. 05) !important;
+  box-shadow: 
+    0 0 0 3px rgba(34,197,94,0.6),
+    0 0 24px rgba(34,197,94,0.8),
+    inset 0 0 24px rgba(34,197,94,0.15),
+    0 12px 20px rgba(0,0,0,0.9) !important;
+  border-color: var(--accent-2, #22c55e) ! important;
 }
 
-.briefcase-hotbar-slot-wrapper .briefcase-item-icon {
+.briefcase-slot.briefcase-hotbar-style .briefcase-item-icon {
   width: 38px;
   height: 38px;
   font-size: 24px;
-  box-shadow: none;
   border-radius: 12px;
   background: rgba(15,23,42,0.9);
 }
 
-.briefcase-hotbar-slot-wrapper .briefcase-item-qty {
+.briefcase-slot.briefcase-hotbar-style .briefcase-item-qty {
   top: 4px;
   right: 6px;
   min-width: 22px;
   height: 18px;
   font-size: 11px;
   padding: 0 6px;
+  background: linear-gradient(135deg, var(--accent-1, #f97316), var(--accent-3, #22c55e));
+  color: #111827;
+}
+
+/* NEU: Hotbar-Nummer (1-5) */
+.briefcase-hotbar-number {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent-2, #22c55e), var(--accent-3, #22c55e));
+  color: #020617;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 2px 6px rgba(0,0,0,0.6),
+    inset 0 1px 2px rgba(255,255,255,0.3);
+  z-index: 10;
+}
+
+/* Hotbar-Nummer pulsiert bei scannerPulse Animation */
+.briefcase-slot.briefcase-hotbar-style .briefcase-hotbar-number. pulse-active {
+  animation: pulseEffect var(--animation-speed, 2. 5s) ease-in-out infinite;
 }
 
 /* ---------- AKTIONEN (rechts unten) ---------- */
@@ -1094,12 +1083,24 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
     0 14px 30px rgba(0,0,0,0.9);
 }
 
+.briefcase-action-button. settings {
+  margin-top: 8px;
+  border-color: rgba(148, 163, 184, 0.6);
+  background: rgba(30, 41, 59, 0.8);
+  color: #cbd5e1;
+}
+
+.briefcase-action-button.settings:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: rgba(56, 189, 248, 0.8);
+}
+
 /* Visuelles Feedback für Drop-Ziel */
 .drag-hover {
   box-shadow: 0 0 10px 4px var(--animation-pulse-color, #f97316), inset 0 0 0 2px var(--animation-pulse-color, #f97316) !important;
   transform: scale(1.01);
 }
-. dragging {
+.dragging {
   opacity: 0.5;
   border: 2px dashed var(--animation-pulse-color, #f97316) !important;
   box-shadow: none !important;

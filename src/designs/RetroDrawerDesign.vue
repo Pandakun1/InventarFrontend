@@ -278,11 +278,11 @@ const handleDrop = (e: DragEvent, toIndex: number) => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis. com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
 
 .drawer-root {
   position: relative;
-  width: 100%;
+  width: 50%;
   max-width: 1100px;
   aspect-ratio: 16 / 9;
   margin: 0 auto;

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { InventoryItem } from '@/types/inventory'
+import type { InventoryItem } from '../types/inventory'
 
 const INITIAL_ITEMS: InventoryItem[] = [
   { id: 1, name: 'Sandwich', emoji: '🥪', quantity: 2 },
@@ -30,29 +30,24 @@ const INITIAL_ITEMS: InventoryItem[] = [
   { id: 25, name: 'Wasserflasche', emoji: '💧', quantity: 2 },
 ]
 
-// 50 Slots: Fülle die restlichen mit null auf
 const PADDED_ITEMS: (InventoryItem | null)[] = [
   ...INITIAL_ITEMS,
   ...Array(50 - INITIAL_ITEMS.length).fill(null)
 ]
 
 export const useInventoryStore = defineStore('inventory', () => {
-  // State
   const items = ref<(InventoryItem | null)[]>([... PADDED_ITEMS])
   const layoutKey = ref<string>('briefcase')
   const themeKey = ref<string>('classicLeather')
   const animationKey = ref<string>('none')
   
-  // Actions
   function moveItem(fromIndex: number, toIndex: number) {
     const newItems = [...items.value]
     const itemA = newItems[fromIndex]
     const itemB = newItems[toIndex]
 
-    // Nur tauschen, wenn Quellslot existiert (nicht null)
     if (itemA === null) return
     
-    // Swap: ItemA (gezogenes Item) geht zu toIndex, ItemB (Ziel-Item/null) geht zu fromIndex
     newItems[toIndex] = itemA
     newItems[fromIndex] = itemB
     
@@ -60,4 +55,24 @@ export const useInventoryStore = defineStore('inventory', () => {
   }
   
   return { items, layoutKey, themeKey, animationKey, moveItem }
+
+  function toggleSettings() {
+    settingsOpen.value = !settingsOpen. value
+  }
+  
+  function updateSettingsPosition(x: number, y: number) {
+    settingsPosition.value = { x, y }
+  }
+  
+  return { 
+    items, 
+    layoutKey, 
+    themeKey, 
+    animationKey, 
+    settingsOpen,
+    settingsPosition,
+    moveItem,
+    toggleSettings,
+    updateSettingsPosition
+  }
 })
