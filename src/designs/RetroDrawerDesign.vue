@@ -1,0 +1,1193 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import type { DesignProps } from '@/types/inventory'
+
+const props = defineProps<DesignProps>()
+
+const selectedItem = ref<number | null>(null)
+const hoveredItem = ref<number | null>(null)
+const draggedItemIndex = ref<number | null>(null)
+
+const isItemDefined = (item: any) => item !== null && item?. emoji !== undefined && item?.emoji !== ''
+
+const hotbarSlots = computed(() => props.inventoryItems.slice(0, 5))
+
+const useGlow = computed(() => props.animationKey === 'subtleGlow' || props.animationKey === 'scannerPulse')
+const useFlash = computed(() => props.animationKey === 'quickResponse')
+const usePulse = computed(() => props. animationKey === 'scannerPulse')
+
+// Drag & Drop Handler
+const handleDragStart = (e: DragEvent, index: number) => {
+  if (! isItemDefined(props.inventoryItems[index])) {
+    e.preventDefault()
+    return
+  }
+  draggedItemIndex.value = index
+  e.dataTransfer! .setData('fromIndex', index. toString())
+  ;(e.currentTarget as HTMLElement).classList.add('dragging')
+}
+
+const handleDragEnd = (e: DragEvent) => {
+  ;(e.currentTarget as HTMLElement).classList.remove('dragging')
+  draggedItemIndex.value = null
+}
+
+const handleDragOver = (e: DragEvent) => {
+  e. preventDefault()
+  ;(e.currentTarget as HTMLElement).classList.add('drag-hover')
+}
+
+const handleDragLeave = (e: DragEvent) => {
+  ;(e.currentTarget as HTMLElement). classList.remove('drag-hover')
+}
+
+const handleDrop = (e: DragEvent, toIndex: number) => {
+  e.preventDefault()
+  ;(e.currentTarget as HTMLElement).classList.remove('drag-hover')
+  const fromIndex = parseInt(e.dataTransfer!. getData('fromIndex'), 10)
+  
+  if (fromIndex !== toIndex) {
+    props.moveItem(fromIndex, toIndex)
+  }
+  draggedItemIndex.value = null
+}
+</script>
+
+<template>
+  <div class="drawer-root">
+    <div class="drawer-shadow" />
+    <div class="drawer-shell">
+      <div class="drawer-title-plate">RETRO INVENTAR</div>
+
+      <div class="drawer-inner-wall">
+        <div class="drawer-layout">
+          <!-- Oben links: Wallet/Brieftasche -->
+          <div :class="['drawer-wallet-panel', usePulse ? 'pulse-active' : '']">
+            <div class="drawer-wallet-header">
+              <div class="drawer-wallet-title">Geldschublade</div>
+              <div class="drawer-wallet-sub">Bargeld &amp; Lizenzen</div>
+            </div>
+            <div class="drawer-notes-stack">
+              <div class="drawer-note-sheet">
+                <div class="drawer-paperclip" />
+                <div class="drawer-wallet-content">
+                  <div class="drawer-cash-row">
+                    <div class="drawer-cash-icon">💰</div>
+                    <div class="drawer-cash-main">
+                      <div class="drawer-cash-label">Bargeld</div>
+                      <div class="drawer-cash-value">2.500 $</div>
+                    </div>
+                  </div>
+                  <div class="drawer-license-grid">
+                    <div
+                      v-for="lic in licenses"
+                      :key="lic. id"
+                      class="drawer-license-tag"
+                    >
+                      <div class="drawer-license-name">{{ lic.label }}</div>
+                      <div class="drawer-license-desc">{{ lic.desc }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Oben rechts: Stats / Gewicht -->
+          <div :class="['drawer-stats-panel', useGlow ? 'drawer-panel-glow' : '']">
+            <div class="drawer-stats-header">
+              <div class="drawer-stats-title">Status</div>
+              <div class="drawer-stats-sub">Werte &amp; Last</div>
+            </div>
+            <div class="drawer-card-strip">
+              <div
+                v-for="stat in stats"
+                :key="stat. name"
+                :class="['drawer-stat-card', usePulse ? 'pulse-active' : '']"
+              >
+                <div class="drawer-stat-name">{{ stat. name }}</div>
+                <div class="drawer-stat-value-row">
+                  <div class="drawer-stat-value">{{ stat.value }}</div>
+                  <div class="drawer-stat-max">/ {{ stat.max }}</div>
+                </div>
+                <div class="drawer-stat-bar">
+                  <div
+                    class="drawer-stat-bar-fill"
+                    :style="{
+                      width: `${(stat.value / stat.max) * 100}%`,
+                      background: stat.color,
+                    }"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="drawer-weight-row">
+              <div>
+                <div class="drawer-weight-text">24. 5 / 50. 0 kg</div>
+                <div class="drawer-weight-sub">Gewicht / Gesamtgewicht</div>
+              </div>
+              <div class="drawer-weight-status">OK</div>
+            </div>
+          </div>
+
+          <!-- Links unten: Schlüssel-Schublade -->
+          <div :class="['drawer-keys-panel', usePulse ? 'pulse-active' : '']">
+            <div class="drawer-keys-header">
+              <div class="drawer-keys-title">Schlüssel</div>
+              <div class="drawer-keys-sub">{{ keys.length }} Stück</div>
+            </div>
+            <div class="drawer-key-rail" />
+            <div class="drawer-keys-list">
+              <div
+                v-for="(k, i) in keys"
+                :key="i"
+                class="drawer-key-item"
+              >
+                <div class="drawer-key-icon">{{ k.icon }}</div>
+                <div class="drawer-key-name">{{ k.name }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mitte: Inventar + Hotbar (mit viel Hintergrundsicht) -->
+          <div class="drawer-inventory-panel">
+            <div :class="['drawer-inventory-inner', useGlow ? 'drawer-panel-glow' : '']">
+              <div class="drawer-inventory-header">
+                <div class="drawer-inventory-title">INVENTAR</div>
+                <div class="drawer-inventory-sub">
+                  50 Slots • {{ inventoryItems.filter(isItemDefined).length }} belegt
+                </div>
+              </div>
+
+              <div class="drawer-inventory-scroll">
+                <div class="drawer-inventory-grid">
+                  <!-- Inventar Slots (Index 0 bis 49) -->
+                  <div
+                    v-for="(item, index) in inventoryItems"
+                    :key="index"
+                    :data-index="index"
+                    :class="[
+                      'drawer-slot',
+                      ! isItemDefined(item) ?  'empty' : '',
+                      selectedItem === item?. id ? 'selected' : '',
+                      useFlash ? 'drawer-slot-flash' : '',
+                      isItemDefined(item) && useGlow ? 'slot-glow' : ''
+                    ]"
+                    :draggable="isItemDefined(item)"
+                    @click="selectedItem = selectedItem === item?. id ? null : item?.id"
+                    @mouseenter="hoveredItem = item?. id"
+                    @mouseleave="hoveredItem = null"
+                    @dragstart="(e) => handleDragStart(e, index)"
+                    @dragend="handleDragEnd"
+                    @dragover="handleDragOver"
+                    @dragleave="handleDragLeave"
+                    @drop="(e) => handleDrop(e, index)"
+                  >
+                    <template v-if="isItemDefined(item)">
+                      <div class="drawer-item-icon">{{ item.emoji }}</div>
+                      <div
+                        v-if="item.quantity > 1"
+                        class="drawer-item-qty"
+                      >
+                        {{ item.quantity }}
+                      </div>
+                      <div
+                        v-if="hoveredItem === item. id"
+                        class="drawer-tooltip"
+                        style="left: 50%; bottom: 100%"
+                      >
+                        {{ item.name }}
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hotbar -->
+              <div class="drawer-hotbar">
+                <div class="drawer-hotbar-header">Hotbar • Schnellzugriff</div>
+                <div class="drawer-hotbar-row">
+                  <div
+                    v-for="(item, index) in hotbarSlots"
+                    :key="index"
+                    class="drawer-hotbar-slot-wrapper"
+                  >
+                    <div
+                      :data-index="index"
+                      :class="[
+                        'drawer-slot',
+                        !isItemDefined(item) ? 'empty' : '',
+                        selectedItem === item?.id ? 'selected' : '',
+                        useFlash ? 'drawer-slot-flash' : '',
+                        isItemDefined(item) && useGlow ? 'slot-glow' : ''
+                      ]"
+                      :draggable="isItemDefined(item)"
+                      @click="selectedItem = selectedItem === item?.id ?  null : item?.id"
+                      @mouseenter="hoveredItem = item?.id"
+                      @mouseleave="hoveredItem = null"
+                      @dragstart="(e) => handleDragStart(e, index)"
+                      @dragend="handleDragEnd"
+                      @dragover="handleDragOver"
+                      @dragleave="handleDragLeave"
+                      @drop="(e) => handleDrop(e, index)"
+                    >
+                      <template v-if="isItemDefined(item)">
+                        <div class="drawer-item-icon">{{ item.emoji }}</div>
+                        <div
+                          v-if="item.quantity > 1"
+                          class="drawer-item-qty"
+                        >
+                          {{ item. quantity }}
+                        </div>
+                        <div
+                          v-if="hoveredItem === item.id"
+                          class="drawer-tooltip"
+                          style="left: 50%; bottom: 100%"
+                        >
+                          {{ item.name }}
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- rechts unten: Aktionen -->
+          <div class="drawer-actions-panel">
+            <div class="drawer-actions-title">Aktionen</div>
+            <button :class="['drawer-action-button primary', usePulse ? 'pulse-active' : '']">
+              Auf den Boden ablegen
+            </button>
+            <button class="drawer-action-button">
+              Vom Boden aufheben
+            </button>
+            <button class="drawer-action-button">
+              Geben-Modus
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-floor">
+        <div class="drawer-floor-line" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+@import url('https://fonts.googleapis. com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
+
+.drawer-root {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-shadow {
+  position: absolute;
+  inset: 0;
+  filter: blur(40px);
+  background:
+    radial-gradient(circle at top, rgba(248,250,252,0.12), transparent 60%),
+    radial-gradient(circle at bottom right, rgba(147,51,234,0.25), transparent 65%),
+    radial-gradient(circle at bottom left, rgba(248,250,252,0.12), transparent 60%);
+  opacity: 0.8;
+}
+
+.drawer-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top left, rgba(248,250,252,0.08), transparent 60%),
+    linear-gradient(180deg, #4b2c18 0%, #2b160c 45%, #1b110a 100%);
+  box-shadow:
+    0 30px 70px rgba(0,0,0,0.95),
+    0 0 0 2px rgba(15,23,42,0.95);
+  padding: 18px 22px 18px 22px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.drawer-panel-glow {
+  animation: panelGlow var(--animation-speed, 3s) ease-in-out infinite alternate;
+}
+
+.drawer-pulse {
+  animation: pulseEffect var(--animation-speed, 2. 5s) ease-in-out infinite;
+}
+
+. drawer-slot-flash:hover {
+  animation: slotFlash 0.3s ease-out;
+  transform: translateY(0px) scale(1.00);
+}
+
+.drawer-shell::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 24px;
+  border: 7px solid rgba(94,54,27,0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,0.85);
+  pointer-events: none;
+}
+
+.drawer-shell::after {
+  content: '';
+  position: absolute;
+  inset: 18px 28px 22px 28px;
+  border-radius: 18px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(68,32,15,0.98) 0,
+      rgba(68,32,15,0.98) 32px,
+      rgba(55,28,13,0.98) 32px,
+      rgba(55,28,13,0.98) 64px
+    );
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.drawer-title-plate {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, #e5e7eb, #6b7280);
+  box-shadow:
+    0 8px 12px rgba(0,0,0,0.85),
+    inset 0 0 0 1px rgba(148,163,184,0.7);
+  font-family: 'Unica One', system-ui, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #111827;
+}
+
+.drawer-inner-wall {
+  position: relative;
+  border-radius: 20px;
+  background:
+    linear-gradient(90deg,
+      rgba(124,74,38,0.9) 0,
+      rgba(68,32,15,0.98) 14%,
+      rgba(68,32,15,0.98) 86%,
+      rgba(124,74,38,0.9) 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0,0,0,0.18) 0,
+      rgba(0,0,0,0.18) 1px,
+      transparent 1px,
+      transparent 24px
+    );
+  padding: 14px 18px;
+  box-shadow:
+    inset 0 0 0 1px rgba(15,23,42,0.85);
+}
+
+.drawer-layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 220px;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+  align-items: stretch;
+}
+
+.drawer-floor {
+  position: relative;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #111827 0, #020617 45%, #000 100%);
+  box-shadow: inset 0 8px 12px rgba(0,0,0,0.85);
+}
+
+.drawer-floor-line {
+  position: absolute;
+  inset: 10px 40px 0 40px;
+  border-top: 3px solid rgba(15,23,42,0.95);
+}
+
+/* ---------- WALLET-SCHRUBLADE (oben links) ---------- */
+
+.drawer-wallet-panel {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #321a0e, #1b1008);
+  box-shadow:
+    0 16px 36px rgba(0,0,0,0.95),
+    inset 0 0 0 1px rgba(0,0,0,0.9);
+  padding: 10px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-wallet-panel::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 14px;
+  border: 3px solid rgba(75,40,20,0.9);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.9);
+  pointer-events: none;
+}
+
+.drawer-wallet-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, #e5e7eb, #6b7280);
+  box-shadow:
+    0 6px 10px rgba(0,0,0,0.9);
+}
+
+.drawer-wallet-panel. pulse-active::after {
+  animation: pulseEffect var(--animation-speed, 2.5s) ease-in-out infinite;
+}
+
+.drawer-wallet-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.drawer-wallet-title {
+  font-family: 'Unica One', system-ui, sans-serif;
+  letter-spacing: 0.22em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #f9fafb;
+}
+
+.drawer-wallet-sub {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #e5e7ebaa;
+}
+
+.drawer-notes-stack {
+  position: relative;
+  margin-top: 2px;
+}
+
+.drawer-note-sheet {
+  position: relative;
+  border-radius: 10px;
+  background: #fef3c7;
+  padding: 7px 8px 9px 10px;
+  box-shadow:
+    0 8px 14px rgba(0,0,0,0.7),
+    inset 0 0 0 1px rgba(0,0,0,0.1);
+}
+
+.drawer-note-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 3px 6px auto auto;
+  height: 80%;
+  border-radius: 8px;
+  background: #fef9c3;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+  transform: translate(4px, 4px);
+  opacity: 0.9;
+}
+
+.drawer-paperclip {
+  position: absolute;
+  top: -6px;
+  right: 16px;
+  width: 24px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid rgba(148,163,184,1);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  transform: rotate(18deg);
+  box-shadow: 0 4px 4px rgba(0,0,0,0.4);
+}
+
+.drawer-wallet-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-cash-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawer-cash-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(15,23,42,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.drawer-cash-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.drawer-cash-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+. drawer-cash-value {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.drawer-license-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 4px;
+}
+
+. drawer-license-tag {
+  border-radius: 7px;
+  background: #f9fafb;
+  padding: 4px 6px;
+  box-shadow:
+    0 3px 5px rgba(0,0,0,0.25),
+    inset 0 0 0 1px rgba(148,163,184,0.5);
+}
+
+.drawer-license-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.drawer-license-desc {
+  font-size: 10px;
+  color: #4b5563;
+}
+
+/* ---------- STATS (oben rechts) ---------- */
+
+.drawer-stats-panel {
+  grid-column: 3;
+  grid-row: 1;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #231717, #111827);
+  box-shadow:
+    0 16px 34px rgba(0,0,0,0.95),
+    inset 0 0 0 1px rgba(0,0,0,0.9);
+  padding: 10px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.drawer-stats-title {
+  font-family: 'Unica One', system-ui, sans-serif;
+  letter-spacing: 0.22em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #f9fafb;
+}
+
+.drawer-stats-sub {
+  font-size: 10px;
+  color: #e5e7ebaa;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.drawer-card-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.drawer-stat-card {
+  position: relative;
+  border-radius: 9px;
+  background: #fefcf5;
+  padding: 6px 7px 7px 8px;
+  box-shadow:
+    0 5px 8px rgba(0,0,0,0.4),
+    inset 0 0 0 1px rgba(148,163,184,0.45);
+}
+
+.drawer-stat-card. pulse-active {
+  animation: pulseEffect var(--animation-speed, 2.5s) ease-in-out infinite;
+}
+
+.drawer-stat-card::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 10px;
+  width: 20px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(148,163,184,1);
+  border-bottom-color: transparent;
+  border-right-color: transparent;
+  transform: rotate(-14deg);
+  box-shadow: 0 3px 4px rgba(0,0,0,0.35);
+}
+
+.drawer-stat-name {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.drawer-stat-value-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 3px;
+}
+
+.drawer-stat-value {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.drawer-stat-max {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+. drawer-stat-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.drawer-stat-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.drawer-weight-row {
+  margin-top: 6px;
+  border-radius: 8px;
+  background: #020617;
+  border: 1px solid rgba(75,85,99,0.9);
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-weight-text {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+.drawer-weight-sub {
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.drawer-weight-status {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent-2, #22c55e);
+}
+
+/* ---------- SCHLÜSSELBUND (links unten) ---------- */
+
+.drawer-keys-panel {
+  grid-column: 1;
+  grid-row: 2;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #321a0e, #1b1008);
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.95),
+    inset 0 0 0 1px rgba(0,0,0,0. 9);
+  padding: 10px 12px 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-keys-panel::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 14px;
+  border: 3px solid rgba(75,40,20,0.9);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.9);
+  pointer-events: none;
+}
+
+.drawer-keys-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, #e5e7eb, #6b7280);
+  box-shadow:
+    0 6px 10px rgba(0,0,0,0.9);
+}
+
+. drawer-keys-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.drawer-keys-title {
+  font-family: 'Unica One', system-ui, sans-serif;
+  letter-spacing: 0. 2em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #f9fafb;
+}
+
+.drawer-keys-sub {
+  font-size: 10px;
+  color: #e5e7ebaa;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.drawer-key-rail {
+  position: relative;
+  z-index: 1;
+  height: 16px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, #020617, #020617);
+  box-shadow:
+    inset 0 0 0 1px rgba(15,23,42,0.9),
+    0 4px 6px rgba(0,0,0,0.8);
+  margin-bottom: 6px;
+}
+
+.drawer-keys-list {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.drawer-key-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(15,23,42,0.96);
+  border: 1px solid rgba(55,65,81,0.9);
+}
+
+.drawer-key-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, #fbbf24, #b45309);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #111827;
+}
+
+.drawer-key-name {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 11px;
+  color: #e5e7eb;
+}
+
+/* ---------- INVENTAR (Mitte) ---------- */
+
+.drawer-inventory-panel {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  border-radius: 20px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-inventory-inner {
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.85), rgba(15,23,42,0.9));
+  backdrop-filter: blur(2px);
+  padding: 10px 12px 10px 12px;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.95),
+    inset 0 0 0 1px rgba(0,0,0,0. 9);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.drawer-inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.drawer-inventory-title {
+  font-family: 'Unica One', system-ui, sans-serif;
+  letter-spacing: 0.26em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #f9fafb;
+}
+
+.drawer-inventory-sub {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #e5e7ebaa;
+}
+
+.drawer-inventory-scroll {
+  position: relative;
+  flex: 30vh;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.9), rgba(15,23,42,0.98));
+  border: 1px solid rgba(31,41,55,0.95);
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.drawer-inventory-scroll::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148,163,184,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148,163,184,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.drawer-inventory-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  z-index: 1;
+  min-height: 0;
+}
+
+.drawer-slot {
+  position: relative;
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.82), rgba(15,23,42,0.95));
+  border: 1px solid rgba(75,85,99,0.9);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  cursor: grab;
+  transition: all 0.15s ease-out;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+}
+
+.drawer-slot. empty:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(75,85,99,0.9);
+}
+
+.drawer-slot::before {
+  content: '';
+  position: absolute;
+  inset: 1px 1px auto 1px;
+  height: 50%;
+  border-radius: 8px 8px 0 0;
+  background: radial-gradient(circle at top, rgba(248,250,252,0.18), transparent 70%);
+  opacity: 0. 6;
+  pointer-events: none;
+}
+
+.drawer-slot:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 14px rgba(0,0,0,0.9),
+    0 0 0 1px rgba(248,250,252,0.6);
+  border-color: #e5e7eb;
+}
+
+.drawer-slot. slot-glow. selected {
+  animation: panelGlow 3s ease-in-out infinite alternate;
+}
+
+.drawer-slot.slot-flash:hover {
+  animation: slotFlash 0.3s ease-out;
+  transform: translateY(0px) scale(1.00);
+}
+
+.drawer-slot.selected {
+  box-shadow:
+    0 0 0 2px var(--accent-2, #22c55e),
+    0 0 22px rgba(34,197,94,0.85);
+  border-color: var(--accent-2, #22c55e);
+}
+
+. drawer-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(15,23,42,0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.drawer-item-qty {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  min-width: 20px;
+  height: 16px;
+  border-radius: 999px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-1, #f97316), var(--accent-3, #22c55e));
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-tooltip {
+  position: absolute;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  background: rgba(15,23,42,0.96);
+  color: #e5e7eb;
+  border: 1px solid rgba(148,163,184,0.9);
+  white-space: nowrap;
+  z-index: 50;
+  transform: translate(-50%, -100%);
+  margin-bottom: 6px;
+  animation: drawerTooltipFade 0.16s ease-out;
+}
+
+@keyframes drawerTooltipFade {
+  from { opacity: 0; transform: translate(-50%, -110%); }
+  to { opacity: 1; transform: translate(-50%, -100%); }
+}
+
+/* HOTBAR */
+
+.drawer-hotbar {
+  margin-top: 6px;
+  border-radius: 10px;
+  background: #020617;
+  border: 1px solid rgba(55,65,81,0.9);
+  padding: 6px 8px;
+}
+
+.drawer-hotbar-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.drawer-hotbar-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.drawer-hotbar-slot-wrapper {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  padding: 3px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #020617, #020617);
+  border: 1px solid var(--accent-2, #22c55e);
+  box-shadow: 0 0 0 1px rgba(34,197,94,0.6), 0 8px 14px rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-hotbar-slot-wrapper . drawer-slot {
+  border: none;
+  background: none;
+  padding: 0;
+  box-shadow: none ! important;
+  transform: none !important;
+  cursor: grab;
+}
+
+.drawer-hotbar-slot-wrapper .drawer-item-icon {
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  box-shadow: none;
+  border-radius: 7px;
+  background: rgba(15,23,42,0. 96);
+}
+
+.drawer-hotbar-slot-wrapper .drawer-item-qty {
+  bottom: 3px;
+  right: 4px;
+  min-width: 20px;
+  height: 16px;
+  font-size: 10px;
+  padding: 0 5px;
+}
+
+/* ---------- ACTIONS (rechts unten) ---------- */
+
+.drawer-actions-panel {
+  grid-column: 3;
+  grid-row: 2;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #261716, #020617);
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.95),
+    inset 0 0 0 1px rgba(0,0,0,0.9);
+  padding: 10px 12px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-actions-title {
+  font-family: 'Unica One', system-ui, sans-serif;
+  letter-spacing: 0.22em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.drawer-action-button {
+  position: relative;
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid rgba(75,85,99,0.9);
+  background: radial-gradient(circle at center, #020617, #020617);
+  color: #e5e7eb;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.16s ease;
+}
+
+.drawer-action-button. primary {
+  border-color: var(--accent-1, #f97316);
+  background: radial-gradient(circle at center, #f97316, #b45309);
+  color: #111827;
+  box-shadow:
+    0 14px 26px rgba(0,0,0,0.8);
+}
+
+.drawer-action-button.primary. pulse-active {
+  animation: pulseEffect var(--animation-speed, 2. 5s) ease-in-out infinite;
+}
+
+.drawer-action-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(248,250,252,0.2), transparent 60%);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.drawer-action-button:hover::after {
+  width: 180px;
+  height: 180px;
+}
+
+.drawer-action-button:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 28px rgba(0,0,0,0.9);
+}
+</style>
