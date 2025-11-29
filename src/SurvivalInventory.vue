@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useInventoryStore } from './stores/inventory'
+import SettingsMenu from './components/SettingsMenu.vue'
 import BriefcaseDesign from './designs/BriefcaseDesign.vue'
 import KidsShelfDesign from './designs/KidsShelfDesign.vue'
 import TacticalBackpackDesign from './designs/TacticalBackpackDesign.vue'
@@ -237,8 +238,15 @@ const currentComponent = computed(() => {
   background: #1e293b;
 }
 
-.min-h-screen {
-  max-width: 58%;
-  margin: 0 auto;
+.app-root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.app-root > div {
+  max-width: 58%;  /* Kleinere Breite */
+  width: 100%;
 }
 </style>
