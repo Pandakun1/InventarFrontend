@@ -1,3 +1,281 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import type { DesignProps } from '@/types/inventory'
+
+const props = defineProps<DesignProps>()
+
+const selectedItem = ref<number | null>(null)
+const hoveredItem = ref<number | null>(null)
+const draggedItemIndex = ref<number | null>(null)
+
+// Item ist definiert, wenn es nicht null ist
+const isItemDefined = (item: any) => item !== null && item?. emoji !== undefined && item?.emoji !== ''
+
+// Hotbar sind die ersten 5 Slots im Hauptinventar-Array
+const hotbarSlots = computed(() => props.inventoryItems. slice(0, 5))
+
+// Bestimme die zu verwendenden Animationsklassen
+const useGlow = computed(() => props.animationKey === 'subtleGlow' || props.animationKey === 'scannerPulse')
+const useFlash = computed(() => props. animationKey === 'quickResponse')
+const usePulse = computed(() => props.animationKey === 'scannerPulse')
+
+// Drag & Drop Handler
+const handleDragStart = (e: DragEvent, index: number) => {
+  if (! isItemDefined(props.inventoryItems[index])) {
+    e.preventDefault()
+    return
+  }
+  draggedItemIndex.value = index
+  e.dataTransfer! .setData('fromIndex', index. toString())
+  ;(e.currentTarget as HTMLElement).classList.add('dragging')
+}
+
+const handleDragEnd = (e: DragEvent) => {
+  ;(e.currentTarget as HTMLElement).classList.remove('dragging')
+  draggedItemIndex.value = null
+}
+
+const handleDragOver = (e: DragEvent) => {
+  e. preventDefault()
+  ;(e.currentTarget as HTMLElement).classList.add('drag-hover')
+}
+
+const handleDragLeave = (e: DragEvent) => {
+  ;(e.currentTarget as HTMLElement). classList.remove('drag-hover')
+}
+
+const handleDrop = (e: DragEvent, toIndex: number) => {
+  e.preventDefault()
+  ;(e.currentTarget as HTMLElement).classList.remove('drag-hover')
+  const fromIndex = parseInt(e.dataTransfer!.getData('fromIndex'), 10)
+  
+  if (fromIndex !== toIndex) {
+    props.moveItem(fromIndex, toIndex)
+  }
+  draggedItemIndex.value = null
+}
+</script>
+
+<template>
+  <div class="briefcase-root">
+    <div class="briefcase-shadow" />
+    <div class="briefcase">
+      <div class="briefcase-handle" />
+
+      <div class="briefcase-inner">
+        <div class="briefcase-wall">
+          <div class="briefcase-layout">
+            <!-- oben links: Geldbeutel -->
+            <div :class="['briefcase-wallet-panel', useGlow ? 'briefcase-panel-glow' : '']">
+              <div class="wallet-header">
+                <div class="wallet-title">Geldbörse</div>
+                <div class="wallet-label">Bargeld &amp; Lizenzen</div>
+              </div>
+              <div class="wallet-row">
+                <div class="wallet-cash">
+                  <div class="wallet-cash-icon">💵</div>
+                  <div class="wallet-cash-main">
+                    <div class="wallet-cash-label">Bargeld</div>
+                    <div class="wallet-cash-value">2.500 $</div>
+                  </div>
+                </div>
+
+                <div class="wallet-licenses">
+                  <div
+                    v-for="lic in licenses"
+                    :key="lic.id"
+                    class="license-card"
+                  >
+                    <div class="license-main">{{ lic.label }}</div>
+                    <div class="license-sub">{{ lic.desc }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- oben rechts: Stats im Deckel-Notizzettel-Stil -->
+            <div class="briefcase-stats-panel">
+              <div class="briefcase-stats-header">
+                <div class="briefcase-stats-title">Status Notizen</div>
+                <div class="briefcase-stats-sub">Vital &amp; Last</div>
+              </div>
+              <div class="briefcase-note-strip">
+                <div
+                  v-for="stat in stats"
+                  :key="stat.name"
+                  :class="['briefcase-note-card', usePulse ? 'briefcase-pulse' : '']"
+                >
+                  <div class="briefcase-note-title">{{ stat.name }}</div>
+                  <div class="briefcase-note-value-row">
+                    <div class="briefcase-note-value">{{ stat.value }}</div>
+                    <div class="briefcase-note-max">/ {{ stat.max }}</div>
+                  </div>
+                  <div class="briefcase-note-bar">
+                    <div
+                      class="briefcase-note-bar-fill"
+                      :style="{
+                        width: `${(stat.value / stat.max) * 100}%`,
+                        background: stat.color,
+                      }"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="briefcase-weight-row">
+                <div>
+                  <div class="briefcase-weight-text">24. 5 / 50. 0 kg</div>
+                  <div class="briefcase-weight-sub">Gewicht / Gesamtgewicht</div>
+                </div>
+                <div class="briefcase-weight-status">OK</div>
+              </div>
+            </div>
+
+            <!-- links unten: Schlüsselbund -->
+            <div class="briefcase-keys-panel">
+              <div :class="['briefcase-keys-ring', usePulse ? 'briefcase-pulse' : '']" />
+              <div class="briefcase-keys-header">
+                <div class="briefcase-keys-title">Schlüsselbund</div>
+                <div class="briefcase-keys-sub">{{ keys.length }} Schlüssel</div>
+              </div>
+              <div class="briefcase-keys-list">
+                <div
+                  v-for="(k, i) in keys"
+                  :key="i"
+                  class="briefcase-key-item"
+                >
+                  <div class="briefcase-key-icon">{{ k.icon }}</div>
+                  <div class="briefcase-key-name">{{ k.name }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mitte: Inventar + Hotbar -->
+            <div :class="['briefcase-inventory-panel', useGlow ? 'briefcase-panel-glow' : '']">
+              <div class="briefcase-inventory-frame" />
+              <div class="briefcase-inventory-inner">
+                <div class="briefcase-inventory-header">
+                  <div class="briefcase-inventory-title">INVENTAR</div>
+                  <div class="briefcase-inventory-sub">
+                    50 Slots • {{ inventoryItems.filter(isItemDefined).length }} belegt
+                  </div>
+                </div>
+
+                <div class="briefcase-inventory-scroll">
+                  <div class="briefcase-inventory-grid">
+                    <!-- Inventar Slots (Index 0 bis 49) -->
+                    <div
+                      v-for="(item, index) in inventoryItems"
+                      :key="index"
+                      :data-index="index"
+                      :class="[
+                        'briefcase-slot',
+                        ! isItemDefined(item) ?  'empty' : '',
+                        selectedItem === item?. id ? 'selected' : '',
+                        useFlash ? 'briefcase-slot-flash' : '',
+                        isItemDefined(item) && useGlow ? 'slot-glow' : ''
+                      ]"
+                      :draggable="isItemDefined(item)"
+                      @click="selectedItem = selectedItem === item?. id ? null : item?. id"
+                      @mouseenter="hoveredItem = item?. id"
+                      @mouseleave="hoveredItem = null"
+                      @dragstart="(e) => handleDragStart(e, index)"
+                      @dragend="handleDragEnd"
+                      @dragover="handleDragOver"
+                      @dragleave="handleDragLeave"
+                      @drop="(e) => handleDrop(e, index)"
+                    >
+                      <template v-if="isItemDefined(item)">
+                        <div class="briefcase-item-icon">{{ item.emoji }}</div>
+                        <div
+                          v-if="item.quantity > 1"
+                          class="briefcase-item-qty"
+                        >
+                          {{ item.quantity }}
+                        </div>
+                        <div
+                          v-if="hoveredItem === item. id"
+                          class="briefcase-tooltip"
+                          style="left: 50%; bottom: 100%"
+                        >
+                          {{ item.name }}
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Hotbar: Nutzt dieselbe Slot-Logik -->
+                <div class="briefcase-hotbar">
+                  <div class="briefcase-hotbar-header">Hotbar • Schnellzugriff</div>
+                  <div class="briefcase-hotbar-row">
+                    <!-- Hotbar mappt die ersten 5 Items.  Index ist 0 bis 4!  -->
+                    <div
+                      v-for="(item, index) in hotbarSlots"
+                      :key="index"
+                      class="briefcase-hotbar-slot-wrapper"
+                    >
+                      <div
+                        :data-index="index"
+                        :class="[
+                          'briefcase-slot',
+                          !isItemDefined(item) ? 'empty' : '',
+                          selectedItem === item?.id ? 'selected' : '',
+                          useFlash ? 'briefcase-slot-flash' : '',
+                          isItemDefined(item) && useGlow ? 'slot-glow' : ''
+                        ]"
+                        :draggable="isItemDefined(item)"
+                        @click="selectedItem = selectedItem === item?.id ? null : item?.id"
+                        @mouseenter="hoveredItem = item?.id"
+                        @mouseleave="hoveredItem = null"
+                        @dragstart="(e) => handleDragStart(e, index)"
+                        @dragend="handleDragEnd"
+                        @dragover="handleDragOver"
+                        @dragleave="handleDragLeave"
+                        @drop="(e) => handleDrop(e, index)"
+                      >
+                        <template v-if="isItemDefined(item)">
+                          <div class="briefcase-item-icon">{{ item.emoji }}</div>
+                          <div
+                            v-if="item.quantity > 1"
+                            class="briefcase-item-qty"
+                          >
+                            {{ item.quantity }}
+                          </div>
+                          <div
+                            v-if="hoveredItem === item.id"
+                            class="briefcase-tooltip"
+                            style="left: 50%; bottom: 100%"
+                          >
+                            {{ item.name }}
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- rechts unten: Aktionen -->
+            <div class="briefcase-actions-panel">
+              <div class="briefcase-actions-title">Aktionen</div>
+              <button :class="['briefcase-action-button primary', usePulse ? 'briefcase-pulse' : '']">
+                Auf den Boden ablegen
+              </button>
+              <button class="briefcase-action-button">
+                Vom Boden aufheben
+              </button>
+              <button class="briefcase-action-button">
+                Geben-Modus
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 @import url('https://fonts.googleapis. com/css2?family=Space+Grotesk:wght@400;500;700&family=Unica+One&family=Shadows+Into+Light&display=swap');
 
